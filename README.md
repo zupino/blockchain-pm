@@ -2,22 +2,22 @@
 Blockchain-based project management, focus on product and automate processes
 
 # Motivation
-Project management involve too much burocracy, this project is an attempt to automate as much as possible the steps required to track project execution, including payment transaction and acceptance. Human work is focused on verifying quality of deliverables rather then ensure payment are done or commercial agreement are honored.
+Project management involve too much burocracy, this project is an attempt to automate as much as possible the steps required to track project execution, including payment transaction and acceptance. Human work is focused on verification of deliverable's quality rather than keeping track of project metrics.
 
 # User Journey and main functionalities
-The main idea is to define the scope of a Project, split it in Task and assign each Task to an Assignee and an Oracle. Assignee are expert assigned to execute the task and generate the deliverables; Oracles are expert in the same domain, but responsible to describe, quaify and accept the deliverables. 
+The main idea is to define the scope of a *Project*, split it in *Task* and assign each *Task* to an Assignee and an Oracle. Assignee are experts assigned to execute the *Task* and generate the deliverables; *Oracles* are expert in the same domain, but responsible to describe, quaify and accept the deliverables. 
 
-The Project Owner creates the project and assign project budget. Also, he creates the list of Tasks, defining Task budget for each of them. Task budget will be used for both Assignee and Oracle compensation. 
+The *Project Owner* creates the *Project* and assigns the project budget, by transfering test eth when calling contract constructor. Also, he creates the list of *Task*s, defining for each of them the assigned *Oracle* and *Assignee*, compensation, deadlines and other properties. 
 
-Assignment is accepted by both by transfer of a small deposit. At this point, Assignee and Oracles agreed on the details of deliverables, deadlines and qualification procedure. 
+Assignment is accepted by both by transfer of a small deposit. At this point, *Assignee* and *Oracles* agreed on the details of deliverables, deadlines and qualification procedure and the *Task* is moved to state `accepted`. 
 
-Once Assignee is done with his tasks and he believe quality of deliverables is high enough for acceptance, Task is set to Resolved and Oracle is notified. 
+Once *Assignee* is done with his tasks and he believes the quality of deliverables is high enough for acceptance, *Task* is set to state `resolved` and *Oracle* is notified. 
 
-Oracle verify the quality of the deliverables and eventually Close the Task, including releasing the task compensation for the Assignee. 
+*Oracle* verifies the quality of the deliverables and eventually move the *Task* to state `closed`, releasing the task compensation for the *Assignee*. 
 
-In case of problems, like disagreement on deliverables or need to review Task budget or deadlines, the Task can be set to On Hold, and resolution with the project owner is triggered. 
+In case of problems, like disagreement on deliverables or need to review *Task* budget or deadlines, the Task can be set to state `on hold`, and resolution with the *Project Owner* is triggered. 
 
-Once all the Tasks in the Project are Closed, the whole project is set as Closed and all Tasks deliverables are qualified and eventually accepted by the Project Owner. 
+Once all the Tasks in the *Project* are `closed`, the whole *Project* is set as `closed` and all *Task* deliverables are qualified and eventually accepted by the *Project Owner*. 
 
 # Testing
 The easiest way to play with the contract is to use the Remix console at http://remix.ethereum.org. In particular, have a look about the Remix Editor quick start with Javascript VM https://remix.readthedocs.io/en/latest/quickstart_javascript_vm.html
@@ -30,10 +30,9 @@ compile and then deploy on a local simulation of the Ethereum Virtual Machine ru
 
 ![select JavaScript VM as environment][jsvm]
 
-This give you few default accounts with 100 test-ether. Different accounts can be used for roles of Project Owner, Oracle and Assignee to make the actual contract transactions. I usually take the firrst address as Project Owner, the second as Oracle and the third as Assignee.
-Remember to switch to the right address before making call to contract methods, methods check for sender address before executing.
+This give you few default accounts with 100 test-ether. Different accounts can be used for roles of *Project Owner*, *Oracle* and *Assignee* to make the actual contract transactions. I usually take the first address as *Project Owner*, the second as *Oracle* and the third as *Assignee*.
 
-Select the address that you want to use as Project Owner and set the Value for the transaction, which will be the project budget.
+Select the address that you want to use as *Project Owner* and set the value for the transaction, which will be the project budget. Press deploy button and confirm from the console message.
 
 ![addresses and value fields][addresses]
 
@@ -43,11 +42,11 @@ Now the contract is deployed and we can use Remix IDE to call methods method. Re
 
 The user journey above is described here in terms of contract calls:
 
-1. Deploy the contract with a specific amount of eth as project budget. 
+1. Deploy the contract with a specific amount of test-eth as project budget. 
 
 2. With the same address, call addTask using the following parameters (you can add several Tasks):
 
-```
+```javascript
     struct Task {
         int8 status;                // 0: new           3: closed
                                     // 1: accepted      4: cancelled
@@ -63,20 +62,20 @@ The user journey above is described here in terms of contract calls:
     }
 ```
 
-And this is a compact form that you can copy and paste in the Remix method call, to make it faster. Remember to replace the addresses and the timestamps for deadlines, or contract constructor will fail.
+And this is a compact form that you can copy and paste in the Remix method call, to make it faster. Remember to replace the addresses and the amounts. The timestamps for deadlines are set to end of 2019, so should work (depending by when you are reading this, check those in case of exception with `addTask()`)
 
-```
+```javascript
 "1","20000000000000000","0x14723a09acff6d2a60dcdf7aa4aff308fddc160c","1574082855","1571404455","0x4b0897b0513fdc7c541b6d9d7e929c4e5364d2db","10000000000000000","20000000000000000","20000000000000000"
 ```
 
-3. Now, for each Task, Assignee and Oracle needs to accept the assignment. This is done by calling the `startWorkingOnTask()`, passing the corresponding Task id as parameter (the same used when Task was created). 
-The call should also transfer exactly the amount mentioned in Task.depositOracle and Task.depositAssignee respectivelly, so make sure value and sender address are correctly set in Remix IDE. 2 transaction (ne from Assignee and one from Oracle) are needed to change the Task state to Accepted.
+3. Now, for each *Task*, *Assignee* and *Oracle* needs to accept the assignment. This is done by calling the `startWorkingOnTask()`, passing the corresponding *Task*'s id as parameter (the same used when *Task* was created). 
+The call should also transfer exactly the amount mentioned in `Task.depositOracle` and `Task.depositAssignee` respectively, so make sure value and sender address are correctly set in Remix IDE. Two transaction (one from *Assignee* and one from *Oracle*) are needed to change the *Task* state to `accepted`.
 
-4. This is the moment when the Assignee work on his Task. Eventually he will finish and feel comfortable that Oracle will accept the deliverables, so she set the Task status to Resolved, by calling the method `resolveTask()`, again using the Task id as parameter. Note that this call does not require any amount being sent to the contract, but can only be called by the Assignee. 
+4. This is the moment when the *Assignee* work on his *Task*. Eventually he will finish and feel comfortable that *Oracle* will accept the deliverables, so she set the *Task* status to `resolved`, by calling the method `resolveTask()`, again using the *Task* id as parameter. Note that this call does not require any amount being sent to the contract, but can only be called by the *Assignee*. 
 
-5. Oracle get notified, review the deliverables and eventually accept them by calling `closeTask()` with the Task id. At this point the compensation for the Assignee is allocated to the payroll, and made available for the Assignee to withdraw. 
+5. Oracle get notified, review the deliverables and eventually accept them by calling `closeTask()` with the *Task* id. At this point the compensation for the *Assignee* is allocated to the payroll, and made available for the *Assignee* to withdraw. 
 
-6. Assignee can withdraw his compensation by calling `withdrawTask()`. Oracle compensation passes to a similar flow, where Task is qualified by Project Owner and entire project set to resovled. 
+6. *Assignee* can withdraw his compensation by calling `withdrawTask()`. *Oracle* compensation passes to a similar flow, where Task is qualified by *Project Owner* and entire project set to `resolved`. 
 
 
 
