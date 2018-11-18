@@ -47,6 +47,7 @@ The user journey above is described here in terms of contract calls:
 
 2. With the same address, call addTask using the following parameters (you can add several Tasks):
 
+```
     struct Task {
         int8 status;                // 0: new           3: closed
                                     // 1: accepted      4: cancelled
@@ -60,10 +61,13 @@ The user journey above is described here in terms of contract calls:
         uint depositOracle;         // Oracle lock a deposit until task is completed
         uint depositAssignee;       // Assignee too
     }
+```
 
 And this is a compact form that you can copy and paste in the Remix method call, to make it faster. Remember to replace the addresses and the timestamps for deadlines, or contract constructor will fail.
 
+```
 "1","20000000000000000","0x14723a09acff6d2a60dcdf7aa4aff308fddc160c","1574082855","1571404455","0x4b0897b0513fdc7c541b6d9d7e929c4e5364d2db","10000000000000000","20000000000000000","20000000000000000"
+```
 
 3. Now, for each Task, Assignee and Oracle needs to accept the assignment. This is done by calling the `startWorkingOnTask()`, passing the corresponding Task id as parameter (the same used when Task was created). 
 The call should also transfer exactly the amount mentioned in Task.depositOracle and Task.depositAssignee respectivelly, so make sure value and sender address are correctly set in Remix IDE. 2 transaction (ne from Assignee and one from Oracle) are needed to change the Task state to Accepted.
