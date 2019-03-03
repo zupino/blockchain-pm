@@ -11,7 +11,7 @@ contract Project {
         address oracle;             // has authority to change status
         address assignee;           // has accountability on task, can start Tasks
         uint deadlineAssignment;    // unix epoch timestamp of deadline
-        uint deadlineDelivery;      // unix epoch timestamp of deadline
+        uint deadlineDelivery;      // unix epoch timestamp of delivery
         uint compensationOracle;
         uint compensationAssignee;  // estimated compensation
         uint depositOracle;         // Oracle lock a deposit until task is completed
