@@ -5,7 +5,7 @@ Blockchain-based project management, focus on product and automate processes
 Project management involve too much burocracy, this project is an attempt to automate as much as possible the steps required to track project execution, including payment transaction and acceptance. Human work is focused on verification of deliverable's quality rather than keeping track of project metrics.
 
 # User Journey and main functionalities
-The main idea is to define the scope of a *Project*, split it in *Task* and assign each *Task* to an Assignee and an Oracle. Assignee are experts assigned to execute the *Task* and generate the deliverables; *Oracles* are expert in the same domain, but responsible to describe, quaify and accept the deliverables. 
+The main idea is to define the scope of a *Project*, split it in *Task* and assign each *Task* to an Assignee and an Oracle. Assignee are experts assigned to execute the *Task* and generate the deliverables; *Oracles* are expert in the same domain, but responsible to describe, qualify and accept the deliverables. 
 
 The *Project Owner* creates the *Project* and assigns the project budget, by transfering test eth when calling contract constructor. Also, he creates the list of *Task*s, defining for each of them the assigned *Oracle* and *Assignee*, compensation, deadlines and other properties. 
 
