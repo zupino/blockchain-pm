@@ -1,6 +1,6 @@
 // https://github.com/zupino/blockchain-pm
 
-pragma solidity ^0.4.0;
+pragma solidity ^0.5.16;
 
 contract Project {
     
@@ -21,20 +21,20 @@ contract Project {
     mapping (uint => Task) tasks;
     mapping (address => uint) payroll;
     uint[] taskIds;
-    address owner;
+    address payable owner;
     uint projectBudget;
     uint projectStatus;             // 0: new       1: Open     2: Closed
     
     event compensationReleased(address _to, uint _amount);
     event fundsWithdrawn(address _to, uint _amount);
     
-    function Project() payable {
+    constructor() public payable {
         owner = msg.sender;
         addProjectBudget(msg.value);
     }
     
     // for debug, maybe not needed
-    function getProject() constant returns (Project) {
+    function getProject() public view returns (Project) {
         require(
             msg.sender == owner,
             "Only Project Owner get project details, for the moment"
@@ -58,13 +58,13 @@ contract Project {
         projectBudget += _amount;
     }
     
-    function getProjectBudget() constant returns (uint) {
+    function getProjectBudget() public view returns (uint) {
         require(
             msg.sender == owner,
             "Only Project Owner can check the budget, for the moment"
         );
         
-        return this.balance;
+        return address(this).balance;
         
     }
     
@@ -73,10 +73,10 @@ contract Project {
             msg.sender == owner,
             "Only Project Owner can withdraw funds, for the moment"
         );
-        if (owner.send(this.balance)) {
-                fundsWithdrawn(owner, this.balance);    
+        if (owner.send(address(this).balance)) {
+                emit fundsWithdrawn(owner, address(this).balance);    
         } else {
-            throw;
+            revert();
         }
     }
     
@@ -90,7 +90,7 @@ contract Project {
                         uint _compensationOracle,
                         uint _depositOracle,
                         uint _depositAssignee
-                    ) {
+                    ) public {
         require(
             msg.sender == owner,
             "Only Project Owner can add tasks"
@@ -104,7 +104,7 @@ contract Project {
                 (_compensationAssignee + _compensationOracle) > projectBudget
             )
         ) {
-            throw;
+            revert();
         }
         else
         {
@@ -128,7 +128,7 @@ contract Project {
     }
     // Resolve project happens when all the project
     // tasks are CLOSED, and Oracle get payed
-    function resolveProject() {
+    function resolveProject() public {
         require(
             msg.sender == owner,
             "Only Project Owner can resolve project"
@@ -147,7 +147,7 @@ contract Project {
         
         if(closedTask == taskIds.length && totalPayout <= projectBudget) {
             projectStatus = 2;
-            for(i=0; i<taskIds.length; i++){
+            for(uint i=0; i<taskIds.length; i++){
                 payroll[tasks[taskIds[i]].oracle] += tasks[taskIds[i]].compensationOracle;
             }
         }
@@ -170,14 +170,14 @@ contract Project {
             if(msg.value == tasks[_id].depositOracle) {
                 tasks[_id].depositOracle -= msg.value;
             } else {
-                throw;
+                revert();
             }
             
         } else { // given the "require" assumption, this is Assignee
             if(msg.value == tasks[_id].depositAssignee) {
                 tasks[_id].depositAssignee -= msg.value;
             } else {
-                throw;
+                revert();
             }
         }
         
@@ -212,11 +212,11 @@ contract Project {
             payroll[tasks[_id].assignee] += tasks[_id].compensationAssignee;
             projectBudget -= tasks[_id].compensationAssignee;
         } else {
-            throw;
+            revert();
         }
     }
     
-    function setStatusOnHold(uint _id) {
+    function setStatusOnHold(uint _id) public {
         require(
             msg.sender == tasks[_id].assignee || msg.sender == tasks[_id].oracle,
             "Only Assignee or Oracle can set tasks On Hold"
@@ -225,7 +225,7 @@ contract Project {
         tasks[_id].status = 5;
     }
     
-    function cancelTask(uint _id) {
+    function cancelTask(uint _id) public {
         
     }
     
