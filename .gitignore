@@ -1,0 +1,3 @@
+# Exclude the npm modules, 
+# Install those by npm drizzle drizzle-react drizzle-react-components
+./app/node_modules
