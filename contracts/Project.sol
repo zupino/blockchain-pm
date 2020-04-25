@@ -1,6 +1,6 @@
 // https://github.com/zupino/blockchain-pm
 
-pragma solidity ^0.5.16;
+pragma solidity ^0.6.2;
 
 contract Project {
     

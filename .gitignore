@@ -1,0 +1,2 @@
+# exclude truffle build folder
+build/
