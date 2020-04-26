@@ -1,7 +1,10 @@
 const Drop = artifacts.require("Drop");
-const TransferToken = artifacts.require("TransferToken");
+const ProjectExternalTask = artifacts.require("ProjectExternalTask");
+const Task = artifacts.require("Task");
 
 module.exports = function(deployer) {
 	deployer.deploy(Drop, 10000);
-	deployer.deploy(TransferToken);
+	// deployer.deploy(ProjectExternalTask);
+	// deployer.deploy(Task);
+
 };
