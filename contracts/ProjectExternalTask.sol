@@ -26,4 +26,29 @@ contract ProjectExternalTask {
 	function getTaskAddress(uint _id) public view returns (address taskAddress) {
 		return tasks[_id];
 	}
+
+	// Send caution to New task to set it to `1: accepted`
+	// Implementing option 1 (Native Ether) for Task deposit
+	// This allows the best UI and the drawback of using native
+	// Ether is not really a drawback, since they need to be 
+	// used for Gas anyway
+	// TODO confirm the last hypothesis and prepare documentation
+	// on the 3 options and the need for Task Deposit itself
+	function openTask(uint _id) taskWorkers(_id) public payable {
+		Task t = Task(tasks[_id]);
+		require(msg.value == t.depositAssignee(), "Need the Ether deposit.");
+		
+		t.openTask();
+		
+	}
+
+
+
+	// Modifiers
+	modifier taskWorkers(uint _id) {
+		Task t = Task(tasks[_id]);
+		require((msg.sender == t.assignee()) || (msg.sender == t.oracle()));
+		_;
+	}
+
 }
