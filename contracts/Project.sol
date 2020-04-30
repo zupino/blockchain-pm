@@ -2,35 +2,27 @@
 
 pragma solidity ^0.6.2;
 
-contract Project {
-    
-    struct Task {
-        int8 status;                // 0: new           3: closed
-                                    // 1: accepted      4: cancelled
-                                    // 2: resolved      5: onhold
-        address oracle;             // has authority to change status
-        address assignee;           // has accountability on task, can start Tasks
-        uint deadlineAssignment;    // unix epoch timestamp of deadline
-        uint deadlineDelivery;      // unix epoch timestamp of delivery
-        uint compensationOracle;
-        uint compensationAssignee;  // estimated compensation
-        uint depositOracle;         // Oracle lock a deposit until task is completed
-        uint depositAssignee;       // Assignee too
-    }
+import './Task.sol';
+import './Drop.sol';
 
-    mapping (uint => Task) tasks;
+contract Project {
+
+	Drop drp;
+
+    mapping (uint => address) tasks;
     mapping (address => uint) payroll;
     uint[] taskIds;
     address payable owner;
-    uint projectBudget;
     uint projectStatus;             // 0: new       1: Open     2: Closed
     
     event compensationReleased(address _to, uint _amount);
     event fundsWithdrawn(address _to, uint _amount);
     
+	// Ether are converted to DRP and assigned as prj budget
     constructor() public payable {
-        owner = msg.sender;
-        addProjectBudget(msg.value);
+	    owner = msg.sender;
+		drp = new Drop(msg.value);
+		
     }
     
     // for debug, maybe not needed
@@ -40,22 +32,6 @@ contract Project {
             "Only Project Owner get project details, for the moment"
         );
         return this;
-    }
-    
-    // TODO So far only constructor can add funds
-    function addProjectBudget(uint _amount) internal {
-        require(
-            (msg.sender == owner && msg.value > 0),
-            "Only Project Owner can add budget, for the moment"
-        );
-        
-        /*
-        If I get it right, no need to process
-        the amount, unless we want to keep it
-        tracked in a variable for convenience
-        */
-        
-        projectBudget += _amount;
     }
     
     function getProjectBudget() public view returns (uint) {
@@ -228,6 +204,5 @@ contract Project {
     function cancelTask(uint _id) public {
         
     }
-    
 }
 
