@@ -25,15 +25,6 @@ contract Project {
 		
     }
     
-    // for debug, maybe not needed
-    function getProject() public view returns (Project) {
-        require(
-            msg.sender == owner,
-            "Only Project Owner get project details, for the moment"
-        );
-        return this;
-    }
-    
     function getProjectBudget() public view returns (uint) {
         require(
             msg.sender == owner,
@@ -50,86 +41,55 @@ contract Project {
             "Only Project Owner can withdraw funds, for the moment"
         );
         if (owner.send(address(this).balance)) {
-                emit fundsWithdrawn(owner, address(this).balance);    
+            emit fundsWithdrawn(owner, address(this).balance);    
         } else {
             revert();
         }
     }
     
-    function addTask(
-                        uint _id, 
-                        uint _compensationAssignee,
-                        address _oracle,
-                        uint _deadlineAssignment,
-                        uint _deadlineDelivery,
-                        address _assignee,
-                        uint _compensationOracle,
-                        uint _depositOracle,
-                        uint _depositAssignee
-                    ) public {
-        require(
-            msg.sender == owner,
-            "Only Project Owner can add tasks"
-        );
-        
-        if (
-            (
-                (_deadlineAssignment <= now) || (_deadlineDelivery <= now)
-            ) || 
-            (
-                (_compensationAssignee + _compensationOracle) > projectBudget
-            )
-        ) {
-            revert();
-        }
-        else
-        {
-            tasks[_id] = Task( {
-                            compensationAssignee: _compensationAssignee,
-                            compensationOracle: _compensationOracle,
-                            oracle: _oracle,
-                            deadlineAssignment: _deadlineAssignment,
-                            deadlineDelivery: _deadlineDelivery,
-                            assignee: _assignee,
-                            depositOracle: _depositOracle,
-                            depositAssignee: _depositAssignee,
-                            status: 0
-                        });
-        
-            taskIds.push(_id);
-            projectBudget = projectBudget - (_compensationAssignee + _compensationOracle);
-            projectStatus = 1;
-        }
-            
+    function addTask(string memory _title, uint _id) ownerOnly public {
+			
+		Task t = new Task(_title, address(this), _id);
+		tasks[_id] = address(t);
+		taskIds.push(_id);
     }
-    // Resolve project happens when all the project
-    // tasks are CLOSED, and Oracle get payed
-    function resolveProject() public {
-        require(
-            msg.sender == owner,
-            "Only Project Owner can resolve project"
-        );
-        
+
+	function setTaskAssignee(uint _id, address _assignee, uint _compensation) 
+	 ownerOnly public {
+		Task t = Task(address(tasks[_id]));
+		t.setAssignee(_assignee);
+		drp.transfer(address(t), _compensation);
+		t.setCompensationOracle(_compensation);
+	}
+
+    // Resolve project when all the project
+    // tasks are CLOSED, Oracle get payed
+    function resolveProject() ownerOnly public {
+
+		Task t;
+
         uint closedTask = 0;
         uint totalPayout = 0;
         
         for(uint i=0; i<taskIds.length; i++){
-            if(tasks[taskIds[i]].status == 3) {
+            t = Task(address(tasks[taskIds[i]]));
+			if(t.status() == 3) {
                 closedTask = closedTask + 1;
-                totalPayout += tasks[taskIds[i]].compensationOracle;
+                totalPayout += t.compensationOracle();
             }
             
         }
         
-        if(closedTask == taskIds.length && totalPayout <= projectBudget) {
+        if(closedTask == taskIds.length && totalPayout <= drp.balanceOf(address(this))) {
             projectStatus = 2;
             for(uint i=0; i<taskIds.length; i++){
-                payroll[tasks[taskIds[i]].oracle] += tasks[taskIds[i]].compensationOracle;
+                t = Task(address(tasks[taskIds[i]]));
+				payroll[t.oracle()] += t.compensationOracle();
             }
         }
     }
     
-    
+    // TODO refactor
     function withdrawTask() public {
         uint amount = payroll[msg.sender];
         payroll[msg.sender] = 0;
@@ -137,72 +97,78 @@ contract Project {
     }
 
     function startWorkingOnTask(uint _id) public payable {
-        require(
-            (msg.sender == tasks[_id].oracle || msg.sender == tasks[_id].assignee),
+        Task t = Task(address(tasks[_id]));
+		require(
+            (msg.sender == t.oracle() || msg.sender == t.assignee()),
             "Only Oracle or Assignee can agree on tasks assignement"
         );
         
-        if (msg.sender == tasks[_id].oracle) {
-            if(msg.value == tasks[_id].depositOracle) {
-                tasks[_id].depositOracle -= msg.value;
+        if (msg.sender == t.oracle()) {
+            if(msg.value == t.depositOracle()) {
+                t.setDepositOracle(t.depositOracle() -  msg.value);
             } else {
                 revert();
             }
             
         } else { // given the "require" assumption, this is Assignee
-            if(msg.value == tasks[_id].depositAssignee) {
-                tasks[_id].depositAssignee -= msg.value;
+            if(msg.value == t.depositAssignee()) {
+                t.setDepositAssignee(t.depositAssignee() - msg.value);
             } else {
                 revert();
             }
         }
         
-        if(((tasks[_id].depositAssignee + tasks[_id].depositOracle) == 0)
-            && tasks[_id].status == 0
+        if(((t.depositAssignee() + t.depositOracle()) == 0)
+            && t.status() == 0
             ) {
-            tasks[_id].status = 1;
+            t.openTask();
         }
         
     }
     
     // only Oracle or Owner can change the status
     function resolveTask(uint _id) public {
-        require(
-            (msg.sender == tasks[_id].assignee && tasks[_id].status == 1),
+        Task t = Task(address(tasks[_id]));
+		require(
+            (msg.sender == t.assignee() && t.status() == 1),
             "Only Assignee can resolve tasks, and Task must be assigned"
         );
-        tasks[_id].status = 2;
+        t.resolveTask();
     }
     
     // only Oracle or Owner can change the status
     function closeTask(uint _id) public {
+		Task t = Task(address(tasks[_id]));
         require(
-            (msg.sender == tasks[_id].oracle && tasks[_id].status == 2),
-            "Only Oracle can close tasks, and Task must be Resolved"
+            (msg.sender == t.oracle() && t.status() == 2),
+            "Only Oracle can close tasks"
         );
-        // Check task current status and project balance
-        // TODO Clarify what is better, this.balance
-        // or our own state var
-        if(tasks[_id].compensationAssignee < projectBudget) {
-            tasks[_id].status = 3;
-            payroll[tasks[_id].assignee] += tasks[_id].compensationAssignee;
-            projectBudget -= tasks[_id].compensationAssignee;
-        } else {
-            revert();
-        }
-    }
+		require(t.status() == 2, "Tasks must be Resolved");
+
+        t.closeTask();
+    	drp.transfer(t.assignee(), t.compensationAssignee());
+	}
     
     function setStatusOnHold(uint _id) public {
+		Task t = Task(address(tasks[_id]));
         require(
-            msg.sender == tasks[_id].assignee || msg.sender == tasks[_id].oracle,
+            msg.sender == t.assignee() || msg.sender == t.oracle(),
             "Only Assignee or Oracle can set tasks On Hold"
         );
         
-        tasks[_id].status = 5;
+        t.holdTask();
     }
     
     function cancelTask(uint _id) public {
         
     }
+
+	// Modifiers
+
+	modifier ownerOnly() {
+		require(msg.sender == owner, "Only owner can do this");
+		_;
+	}
+
 }
 

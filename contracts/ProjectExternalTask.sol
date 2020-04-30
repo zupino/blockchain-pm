@@ -14,7 +14,7 @@ contract ProjectExternalTask {
 		drp = Drop(_drp);
 	}
 
-	function createTask(uint _id, string memory _title, uint _assigneeReward) public returns (address taskAddress) {
+	function createTask(uint _id, string memory _title, uint _assigneeReward) public {
 		Task t = new Task(_title, address(this), _id);
 
 		// we transfer to the Task the amount of DRP we need for the Assignee reward
