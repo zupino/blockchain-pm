@@ -1,2 +1,5 @@
 # exclude truffle build folder
 build/
+
+# exclude vi swap files
+*.swp
