@@ -40,6 +40,10 @@ contract Task {
         compensationOracle = _compensation;
     }
 
+	function setCompensationAssignee(uint _compensation) public {
+		compensationAssignee = _compensation;
+	}
+
 	// TODO next 2 function might not be needed, can 
 	// I have a fixed deposit amount?
 	function setDepositAssignee(uint _deposit) public {

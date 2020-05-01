@@ -7,7 +7,7 @@ import './Drop.sol';
 
 contract Project {
 
-	Drop drp;
+	Drop public drp;
 
     mapping (uint => address) tasks;
     mapping (address => uint) payroll;
@@ -17,6 +17,9 @@ contract Project {
     
     event compensationReleased(address _to, uint _amount);
     event fundsWithdrawn(address _to, uint _amount);
+
+	// Task acceptance deposit for both Oracle and Assignee
+	uint public defaultDeposit = 5;
     
 	// Ether are converted to DRP and assigned as prj budget
     constructor() public payable {
@@ -48,8 +51,11 @@ contract Project {
     }
     
     function addTask(string memory _title, uint _id) ownerOnly public {
-			
 		Task t = new Task(_title, address(this), _id);
+
+		t.setDepositAssignee(defaultDeposit);
+		t.setDepositOracle(defaultDeposit);
+
 		tasks[_id] = address(t);
 		taskIds.push(_id);
     }
@@ -58,6 +64,14 @@ contract Project {
 	 ownerOnly public {
 		Task t = Task(address(tasks[_id]));
 		t.setAssignee(_assignee);
+		drp.transfer(address(t), _compensation);
+		t.setCompensationAssignee(_compensation);
+	}
+
+	function setTaskOracle(uint _id, address _oracle, uint _compensation)
+	ownerOnly public {
+		Task t = Task(address(address(tasks[_id])));
+		t.setOracle(_oracle);
 		drp.transfer(address(t), _compensation);
 		t.setCompensationOracle(_compensation);
 	}
@@ -105,14 +119,14 @@ contract Project {
         
         if (msg.sender == t.oracle()) {
             if(msg.value == t.depositOracle()) {
-                t.setDepositOracle(t.depositOracle() -  msg.value);
+                t.setDepositOracle( 0 );
             } else {
                 revert();
             }
             
         } else { // given the "require" assumption, this is Assignee
             if(msg.value == t.depositAssignee()) {
-                t.setDepositAssignee(t.depositAssignee() - msg.value);
+                t.setDepositAssignee( 0 );
             } else {
                 revert();
             }
@@ -170,5 +184,9 @@ contract Project {
 		_;
 	}
 
+	// DEBUG convenience functions
+	function getTaskAddress(uint _id) public view returns (address) {
+		return tasks[_id];
+	}
 }
 
