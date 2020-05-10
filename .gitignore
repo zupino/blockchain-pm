@@ -4,5 +4,9 @@ build/
 # exclude Drizzle npm node_modules
 webapp/node_modules
 
+# exclude truffle build generation, truffle compile should
+# be run after a fresh clone
+webapp/src/contracts
+
 # exclude vi swap files
 *.swp
