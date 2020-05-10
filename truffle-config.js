@@ -26,7 +26,7 @@
 
 module.exports = {
 	
-	contracts_build_directory: './app/src/contracts',
+	contracts_build_directory: './webapp/src/contracts',
 
   /**
    * Networks define how you connect to your ethereum client and let you set the
