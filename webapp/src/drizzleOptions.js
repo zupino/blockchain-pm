@@ -1,4 +1,4 @@
-import Storage from "./contracts/Project.json";
+import Project from "./contracts/Project.json";
 
 const options = {
 	contracts: [Project],
