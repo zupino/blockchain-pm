@@ -174,7 +174,7 @@ contract Project {
     }
     
     function cancelTask(uint _id) public {
-        
+		// TBD        
     }
 
 	// Modifiers
