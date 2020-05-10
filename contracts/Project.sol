@@ -28,7 +28,7 @@ contract Project {
 		
     }
     
-    function getProjectBudget() public view returns (uint) {
+    function getProjectBudgetEther() public view returns (uint) {
         require(
             msg.sender == owner,
             "Only Project Owner can check the budget, for the moment"
@@ -37,6 +37,15 @@ contract Project {
         return address(this).balance;
         
     }
+
+	function getProjectBudgetDrop() public view returns (uint) {
+		require(
+			msg.sender == owner,
+			"Only Project Owner can check the budget, for the moment"
+		);
+		
+		return drp.balanceOf(address(this));
+	}
     
     function withdrawProjectBudget() public {
         require(
