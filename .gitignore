@@ -2,7 +2,7 @@
 build/
 
 # exclude Drizzle npm node_modules
-app/node_modules
+webapp/node_modules
 
 # exclude vi swap files
 *.swp
