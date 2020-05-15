@@ -1,3 +1,22 @@
+# Latest change for this feature branch
+branch: token-transfer-ui
+
+Note: truffle-config.js point to localhost network, to connect to the docker container
+with the private network, use the following network paramters:
+
+```
+development: {
+      host: "172.18.0.2",     // Localhost (default: none)
+      port: 8545,            // Standard Ethereum port (default: none)
+      network_id: "31331",       // Any network (default: none) websocket: true
+    },
+```
+
+## Main component
+This is a standard truffle project, the webapp directory contains a simple Web frontend
+realized with vanilla Web3.
+
+
 # blockchain-pm
 Blockchain-based project management, focus on product and automate processes
 

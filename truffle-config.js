@@ -25,8 +25,12 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 module.exports = {
-	
-	contracts_build_directory: './webapp/src/contracts',
+
+  // This was used for Drizzle, to have the contract
+  // JSON interfaces available in the frontend
+  // src/ dir, no need anymore
+
+  //  contracts_build_directory: './webapp/src/contracts',
 
   /**
    * Networks define how you connect to your ethereum client and let you set the

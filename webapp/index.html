@@ -1,0 +1,105 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Vanilla Web3 example</title>
+</head>
+
+
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script>
+
+/* 
+ * Variables and constants 
+*/
+
+// Full URI of the geth RPC node
+var providerURI = "http://172.18.0.2:8545";
+var contractAbiURI = "http://127.0.0.1:8000/Project.json";
+var contractAbi = "";
+const contractAddress = "0x3A40516E3B6bf86326DFb017D90DF66e93Ba2333"
+const userAccount = "0xE90055138754e30DC4803218835B8A3019c9fA17";
+// this is used to unlock the account
+const userPassword = "password2";
+
+
+/*
+ * Retrieve the contract JSON interface and its ABI
+*/
+
+$.ajax({
+	url: contractAbiURI,
+	dataType: 'json',
+	async: false,
+	success: function(json){
+		contractAbi = json.abi;
+	},
+	error: function() {
+		alert("Not possible to retrieve contract JSON interface");
+	}
+});
+
+
+/*
+ * Connect web3 to provider
+*/
+var web3 = new Web3(Web3.givenProvider || providerURI);
+
+
+/*
+ * Unlock user account TBD
+*/
+
+/*
+ * Check provider connection TBD
+*/
+
+Project = new web3.eth.Contract(contractAbi, contractAddress, {
+    from: userAccount,
+});
+
+// retrieve value of Project budget
+Project.methods.getProjectBudgetDrop().call().then( function(result) {
+    $('#console').append("<p>Current project budget: " + result + "</p>");
+});
+
+</script>
+
+<body>
+
+<div id="content">
+	<div id="account">
+	</div>
+
+	<div id="create-new-task">
+		<input id="task-title" type="text" value="Hello there">
+		<input id="task-id" type="number">
+	    <button id="add-task" value="Add task">Add task</button>
+	</div>
+
+	<div id="add-operators">
+	</div>
+</div>
+
+<div id="console">
+</div>
+
+<script>
+
+$("#add-task").click( function() {
+	console.log("Clicked");
+	Project.methods.addTask($( "#task-title" ).val(), $("#task-id").val() ).send(function(error, transactionHash) {
+		$('#console').append("<p>[" + transactionHash + "]</p>");
+		$('#console').append("<p>Error: " + error + "</p>");
+	});
+	return;
+
+	$( "#console" ).append( "<p>Value should not be empty.</p>" );
+
+});
+
+</script>
+
+</body>
+</html>
