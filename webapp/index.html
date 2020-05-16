@@ -2,6 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Vanilla Web3 example</title>
+	<link rel="stylesheet" type="text/css" href="style.css" >
 </head>
 
 
@@ -16,7 +17,10 @@
 
 // Full URI of the geth RPC node
 var providerURI = "http://172.18.0.2:8545";
+//var providerURI = "http://lawtake.lynk.sh:8545";
 var contractAbiURI = "http://127.0.0.1:8000/Project.json";
+//var contractAbiURI = "http://finestconsonant.lynk.sh/Project.json";
+
 var contractAbi = "";
 const contractAddress = "0x3A40516E3B6bf86326DFb017D90DF66e93Ba2333"
 const userAccount = "0xE90055138754e30DC4803218835B8A3019c9fA17";
@@ -65,21 +69,40 @@ Project.methods.getProjectBudgetDrop().call().then( function(result) {
 });
 
 </script>
-
 <body>
 
 <div id="content">
-	<div id="account">
-	</div>
+    
+    <div id="account">
+    </div>
+    
+    <fieldset>
+    <legend>Project operations</legend>
+    <div id="project-budget">
+        <button id="get-project-budget-ether">Get Ether budget</button>
+        <button id="get-project-budget-drops">Get Drops budget</button>
+    </fieldset>
+    
+    <fieldset>
+    <legend>Task operations</legend>
+    <div id="create-new-task"> Create new task
+        <input id="task-title" type="text" value="Hello there">
+        <input id="task-id" type="number">
+        <button id="add-task" value="Add task">Add</button>
+    </div>
+    <div id="set-task-workers"> Assign oracle and assignee
+        <input id="set-task-workers-id" value="3" type="number">
+        <input id="set-task-assignee-address" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+        <input id="set-task-assignee-compensation" value="3500" type="number">
 
-	<div id="create-new-task">
-		<input id="task-title" type="text" value="Hello there">
-		<input id="task-id" type="number">
-	    <button id="add-task" value="Add task">Add task</button>
-	</div>
+        <input id="set-task-oracle-address" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+        <input id="set-task-oracle-compensation" value="1500" type="number">
+        <button id="set-task-workers">Assign</button>
+    </div>
+    </fieldset>
 
-	<div id="add-operators">
-	</div>
+    <div id="add-operators">
+    </div>
 </div>
 
 <div id="console">
@@ -87,17 +110,49 @@ Project.methods.getProjectBudgetDrop().call().then( function(result) {
 
 <script>
 
+// Get project budget Ether
+$("#get-project-budget-ether").click( function() {
+	Project.methods.getProjectBudgetEther().call().then( function(result) {
+    	$('#console').append("<p>Current project budget (test Ether): " + result + "</p>");
+	});
+});
+
+// Get project budget Drops
+$("#get-project-budget-drops").click( function() {
+    Project.methods.getProjectBudgetDrop().call().then( function(result) {
+        $('#console').append("<p>Current project budget (DRP token): " + result + "</p>");
+    });
+});
+
+// Add Task
 $("#add-task").click( function() {
-	console.log("Clicked");
 	Project.methods.addTask($( "#task-title" ).val(), $("#task-id").val() ).send(function(error, transactionHash) {
 		$('#console').append("<p>[" + transactionHash + "]</p>");
 		$('#console').append("<p>Error: " + error + "</p>");
 	});
-	return;
-
-	$( "#console" ).append( "<p>Value should not be empty.</p>" );
-
 });
+
+// Set Task workers
+$("#set-task-workers").click( function() {
+	tid = $("#set-task-workers-id").val();
+	assignee = $("#set-task-assignee-address").val();
+	oracle = $("#set-task-oracle-address").val();
+	aComp = $("#set-task-assignee-compensation").val();
+	oComp = $("#set-task-oracle-compensation").val();
+
+	Project.methods.setTaskAssignee( tid, assignee, aComp  ).send(function(error, transactionHash) {
+        $('#console').append("<p>[" + transactionHash + "]</p>");
+        $('#console').append("<p>Error: " + error + "</p>");
+    });
+
+	Project.methods.setTaskAssignee( tid, oracle, oComp  ).send(function(error, transactionHash) {
+        $('#console').append("<p>[" + transactionHash + "]</p>");
+        $('#console').append("<p>Error: " + error + "</p>");
+    });
+});
+
+// Keep console scrolled at the end (not working on Firefox)
+$('#console').scrollTop($('#console')[0].scrollHeight);
 
 </script>
 

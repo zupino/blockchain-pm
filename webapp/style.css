@@ -1,0 +1,51 @@
+body {
+  background: #d1e0e0;
+  padding: 20px;
+  font-family: Verdana;
+}
+
+div {
+  padding: 5px;
+}
+
+button {
+  background: #0084ff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px;
+  font-size: 12px;
+  color: #fff;
+}
+
+input[type="number"] {
+  width: 45px;
+  
+}
+
+fieldset {
+  font-size:12px;
+  
+}
+
+#console {
+  font-family: monospace;
+  position: fixed;
+  bottom: 0;
+  overflow: auto;
+  height: 20%;
+  color: #333;
+  border: 1px solid #BBB;
+  margin: 0px;
+  padding: 0px;
+  width: 90%;
+/*  display: flex; */
+  flex-direction: column-reverse;
+}
+
+#console p {
+  color: #333;
+  margin: 0px;
+  border-top: 1px solid #BBB;
+  padding: 2px;
+  font-size: 9px;
+}
