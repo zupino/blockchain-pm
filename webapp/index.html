@@ -17,9 +17,9 @@
 
 // Full URI of the geth RPC node
 // var providerURI = "http://172.18.0.2:8545";
-var providerURI = "http://5852d43a.ngrok.io";
+var providerURI = "http://e32058ec.ngrok.io";
 //var contractAbiURI = "http://127.0.0.1:8000/Project.json";
-var contractAbiURI = "http://borderstage.lynk.sh/Project.json";
+var contractAbiURI = "http://bb3b6479.ngrok.io/Project.json";
 
 var contractAbi = "";
 const contractAddress = "0x3A40516E3B6bf86326DFb017D90DF66e93Ba2333"
@@ -55,7 +55,7 @@ var web3 = new Web3(
     {
       headers: [{
         name: 'Access-Control-Allow-Origin',
-        value: contractAbiURI
+        value: 'ngrok.io'
       }]
     }
   )
@@ -98,12 +98,15 @@ Project.methods.getProjectBudgetDrop().call().then( function(result) {
     
     <fieldset>
     <legend>Task operations</legend>
-    <div id="create-new-task"> Create new task
+
+    <div id="create-new-task">
+		<p>Create new task</p>
         <input id="task-title" type="text" value="Hello there">
         <input id="task-id" type="number">
         <button id="add-task" value="Add task">Add</button>
     </div>
-    <div id="set-task-workers"> Assign oracle and assignee
+    <div id="set-task-workers">
+		<p>Assign oracle and assignee</p>
         <input id="set-task-workers-id" value="3" type="number">
         <input id="set-task-assignee-address" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
         <input id="set-task-assignee-compensation" value="3500" type="number">
@@ -112,7 +115,29 @@ Project.methods.getProjectBudgetDrop().call().then( function(result) {
         <input id="set-task-oracle-compensation" value="1500" type="number">
         <button id="set-task-workers">Assign</button>
     </div>
-    </fieldset>
+
+	<div id="start-task">
+		<p>Start working on task (both Oracle and Assignee must send deposit)</p>
+		<input id="start-task-id" value="3" type="number" >
+        <input id="start-task-sender" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+		<button id="start-task">Accept</button>
+	</div>
+
+	<div id="resolve-task">
+		<p>Resolve Task (Assignee only)</p>
+		<input id="resolve-task-id" value="3" type="number" >
+		<input id="resolve-task-sender" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+        <button id="resolve-task">Resolve</button>
+	</div>
+
+	<div id="close-task">
+		<p>Close Task (Oracle only)</p>
+        <input id="close-task-id" value="3" type="number" >
+        <input id="close-task-sender" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+        <button id="close-task">Resolve</button>
+    </div>
+	
+	</fieldset>
 
     <div id="add-operators">
     </div>
@@ -163,6 +188,25 @@ $("#set-task-workers").click( function() {
         $('#console').append("<p>Error: " + error + "</p>");
     });
 });
+
+$("#start-task").click( function() {
+    tid = $("#start-task-id").val();
+	addr = $("#start-task-sender").val();
+	Project.methods.startWorkingOnTask(tid).send({from: addr});
+});
+
+$("#resolve-task").click( function() {
+    tid = $("#resolve-task-id").val();
+    addr = $("#resolve-task-sender").val();
+    Project.methods.resolveTask(tid).send({from: addr});
+});
+
+$("#close-task").click( function() {
+    tid = $("#close-task-id").val();
+    addr = $("#close-task-sender").val();
+    Project.methods.resolveTask(tid).send({from: addr});
+});
+
 
 // Keep console scrolled at the end (not working on Firefox)
 $('#console').scrollTop($('#console')[0].scrollHeight);
