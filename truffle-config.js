@@ -52,9 +52,9 @@ module.exports = {
 	// Network configuration for `truffle develop`
 	//
     development: {
-      host: "127.0.0.1",     // Localhost (default: none)
-      port: 9545,            // Standard Ethereum port (default: none)
-      network_id: "*",       // Any network (default: none)
+      host: "172.18.0.2",     // Localhost (default: none)
+      port: 8545,            // Standard Ethereum port (default: none)
+      network_id: "31331",       // Any network (default: none)
 	  websocket: true
     },
 
