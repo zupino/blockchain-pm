@@ -5,7 +5,6 @@
 	<link rel="stylesheet" type="text/css" href="style.css" >
 </head>
 
-
 <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
@@ -72,9 +71,9 @@ var web3 = new Web3(
  * Check provider connection TBD
 */
 
-Project = new web3.eth.Contract(contractAbi, contractAddress, {
-    from: userAccount,
-});
+web3.eth.defaultAccount = userAccount;
+
+Project = new web3.eth.Contract(contractAbi, contractAddress, {});
 
 // retrieve value of Project budget
 Project.methods.getProjectBudgetDrop().call().then( function(result) {
