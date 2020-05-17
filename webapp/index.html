@@ -16,10 +16,10 @@
 */
 
 // Full URI of the geth RPC node
-var providerURI = "http://172.18.0.2:8545";
-//var providerURI = "http://lawtake.lynk.sh:8545";
-var contractAbiURI = "http://127.0.0.1:8000/Project.json";
-//var contractAbiURI = "http://finestconsonant.lynk.sh/Project.json";
+// var providerURI = "http://172.18.0.2:8545";
+var providerURI = "http://5852d43a.ngrok.io";
+//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
+var contractAbiURI = "http://borderstage.lynk.sh/Project.json";
 
 var contractAbi = "";
 const contractAddress = "0x3A40516E3B6bf86326DFb017D90DF66e93Ba2333"
@@ -48,7 +48,20 @@ $.ajax({
 /*
  * Connect web3 to provider
 */
-var web3 = new Web3(Web3.givenProvider || providerURI);
+
+var web3 = new Web3(
+  new Web3.providers.HttpProvider(
+    providerURI,
+    {
+      headers: [{
+        name: 'Access-Control-Allow-Origin',
+        value: contractAbiURI
+      }]
+    }
+  )
+);
+
+// var web3 = new Web3(Web3.givenProvider || providerURI);
 
 
 /*
