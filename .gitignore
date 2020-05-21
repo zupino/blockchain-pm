@@ -6,7 +6,8 @@ webapp/node_modules
 
 # exclude truffle build generation, truffle compile should
 # be run after a fresh clone
-webapp/src/contracts
+webapp/Project.json
+webapp/Drop.json
 
 # exclude vi swap files
 *.swp
