@@ -17,6 +17,7 @@ contract Project {
     
     event compensationReleased(address _to, uint _amount);
     event fundsWithdrawn(address _to, uint _amount);
+	event taskAdded(uint _id, address _addr);
 
 	// Task acceptance deposit for both Oracle and Assignee
 	uint public defaultDeposit = 5;
@@ -67,6 +68,8 @@ contract Project {
 
 		tasks[_id] = address(t);
 		taskIds.push(_id);
+
+		emit taskAdded(_id, tasks[_id]);
     }
 
 	function setTaskAssignee(uint _id, address _assignee, uint _compensation) 
@@ -194,8 +197,13 @@ contract Project {
 	}
 
 	// DEBUG convenience functions
+
 	function getTaskAddress(uint _id) public view returns (address) {
 		return tasks[_id];
+	}
+
+	function getDropAddress() public view returns (address) {
+		return address(drp);
 	}
 }
 
