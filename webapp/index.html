@@ -22,7 +22,7 @@ var contractAbiURI = "http://95295df6.ngrok.io/Project.json";
 var drpContractAbiURI = "http://95295df6.ngrok.io/Drop.json";
 
 var contractAbi = "";
-const contractAddress = "0x284A27324CA9b43C5eAE6AaFF825F414518e2127";
+const contractAddress = "0xC2F288767076236719eCf219ad9d69f394dE9C7E";
 var drpContractAddress = "";
 const userAccount = "0xE90055138754e30DC4803218835B8A3019c9fA17";
 // this will be used to unlock the account
@@ -87,30 +87,14 @@ var web3 = new Web3(
 
 web3.eth.defaultAccount = userAccount;
 
-Project = new web3.eth.Contract(contractAbi, contractAddress);
+Project = new web3.eth.Contract(contractAbi, contractAddress, {from: userAccount});
 
 // retrieve value of Project budget
 Project.methods.getDropAddress().call().then( function(result) {
 	drpContractAddress = result;
 	$('#console').append("<p>DRP Token address: " +  drpContractAddress + "</p>");
-	Drop = new web3.eth.Contract(drpContractAbi, drpContractAddress);
+	Drop = new web3.eth.Contract(drpContractAbi, drpContractAddress, {from: userAccount});
 });
-
-// register to Project contract events
-// This works only if geth expose WS endpoint
-/*
-Project.events.taskAdded({
-    // filter: {myIndexedParam: [20,23]}, // Using an array means OR: e.g. 20 or 23
-    	fromBlock: 0
-	}, function(error, event){ 
-//	$("#console").append("<p>" + event  + "</p>"); 
-	console.log(event);
-})
-.on('data', function(event) {
-	console.log(event);
-})
-.on('error', console.error);
-*/
 
 
 </script>
@@ -143,39 +127,39 @@ Project.events.taskAdded({
         <input id="task-id" type="number">
         <button id="add-task" value="Add task">Add</button>
     </div>
-    <div id="set-task-workers">
+    <div id="set-task-workers-div">
 		<p>Assign oracle and assignee</p>
 
         <input id="set-task-workers-id" value="3" type="number">
-        <input id="set-task-oracle-address" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
-        <input id="set-task-oracle-compensation" value="1500" type="number">
+        <input id="set-task-oracle-address" value="0x6c4113D838a73d94C2D6Aa270A31913637f66BBc">
+        <input id="set-task-oracle-compensation" value="15" type="number">
 
-        <input id="set-task-assignee-address" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
-        <input id="set-task-assignee-compensation" value="3500" type="number">
+        <input id="set-task-assignee-address" value="0x2Fb103C65e0f0018c50779bBe0ADd24D4be1200e">
+        <input id="set-task-assignee-compensation" value="35" type="number">
 
         <button id="set-task-workers">Assign</button>
 
     </div>
 
-	<div id="start-task">
+	<div id="start-task-div">
 		<p>Start working on task (both Oracle and Assignee must send deposit)</p>
         <input id="start-task-id" value="3" type="number" >
-		<input id="start-task-deposit" value="5" type="number" >
-        <input id="start-task-sender" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+		<input id="start-task-deposit" value="5" type="hidden" >
+        <input id="start-task-sender" value="0x2Fb103C65e0f0018c50779bBe0ADd24D4be1200e">
 		<button id="start-task">Accept</button>
 	</div>
 
-	<div id="resolve-task">
+	<div id="resolve-task-div">
 		<p>Resolve Task (Assignee only)</p>
 		<input id="resolve-task-id" value="3" type="number" >
-		<input id="resolve-task-sender" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+		<input id="resolve-task-sender" value="0x2Fb103C65e0f0018c50779bBe0ADd24D4be1200e">
         <button id="resolve-task">Resolve</button>
 	</div>
 
-	<div id="close-task">
+	<div id="close-task-div">
 		<p>Close Task (Oracle only)</p>
         <input id="close-task-id" value="3" type="number" >
-        <input id="close-task-sender" value="0xE90055138754e30DC4803218835B8A3019c9fA17">
+        <input id="close-task-sender" value="0x6c4113D838a73d94C2D6Aa270A31913637f66BBc">
         <button id="close-task">Close</button>
     </div>
 	
@@ -220,8 +204,8 @@ $("#account-balance").click( function() {
 
 // Get project budget Ether
 $("#get-project-budget-ether").click( function() {
-	Project.methods.getProjectBudgetEther().call().then( function(result) {
-    	$('#console').append("<p>Current project budget (test Ether): " + result + "</p>");
+	web3.eth.getBalance(contractAddress).then( function(result){
+		$('#console').append("<p>Current project budget (test Ether): " + result + "</p>");
 	});
 });
 
