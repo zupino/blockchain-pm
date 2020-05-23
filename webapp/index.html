@@ -16,10 +16,14 @@
 
 // Full URI of the geth RPC node
 // var providerURI = "http://172.18.0.2:8545";
-var providerURI = "http://ee905eb2.ngrok.io";
+var providerURI = "http://08fe39a9.ngrok.io";
 //var contractAbiURI = "http://127.0.0.1:8000/Project.json";
 var contractAbiURI = "http://95295df6.ngrok.io/Project.json";
 var drpContractAbiURI = "http://95295df6.ngrok.io/Drop.json";
+
+// Entire JSON interface for used contracts
+// TODO 1 not efficient, some data is redundant
+var prjCntractInterface = "" 
 
 var contractAbi = "";
 const contractAddress = "0xC2F288767076236719eCf219ad9d69f394dE9C7E";
@@ -38,6 +42,8 @@ $.ajax({
 	dataType: 'json',
 	async: false,
 	success: function(json){
+		// TODO 1.1
+		prjContractInterface = json;
 		contractAbi = json.abi;
 	},
 	error: function() {
@@ -113,9 +119,12 @@ Project.methods.getDropAddress().call().then( function(result) {
     
     <fieldset>
     <legend>Project operations</legend>
-    <div id="project-budget">
+    <div id="project-operations">
         <button id="get-project-budget-ether">Get Ether budget</button>
         <button id="get-project-budget-drops">Get Drops budget</button>
+		<p>Create new project with specified budget</p>
+		<input id="create-project-budget" value="25000"></input>
+		<button id="create-project">Create new Project</button>
     </fieldset>
     
     <fieldset>
@@ -175,7 +184,7 @@ Project.methods.getDropAddress().call().then( function(result) {
 <script>
 
 // retrieve list of accounts from geth node
-$("#account-list").append("<p>Contract address: " + contractAddress + "</p>");
+$("#account-list").append("<p id='contract-address'>Contract address: " + contractAddress + "</p>");
 web3.eth.getAccounts().then( function(result) {
     result.forEach( function(element) {
 		//web3.eth.getBalance(element).then( (value) => $("#account-list").append("<p>" + element + ", balance: " + web3.utils.fromWei(value, 'ether') + " (ether) and " + drpBalance +  " (DRP) </p>"));
@@ -302,6 +311,34 @@ $("#close-task").click( function() {
             $('#console').append("<p>Error #: " + error + "</p>");
         })
 
+});
+
+$("#create-project").click( function() {
+	prjBudget = $("#create-project-budget").val();
+
+	prjTemp = new web3.eth.Contract(contractAbi);
+	prjTemp.deploy({
+		data: prjContractInterface.bytecode,
+		arguments: []
+	})
+	.send({from: userAccount, value: prjBudget})
+	.on('error', function(error) { console.log(error)})
+	.on('receipt', function(receipt) { console.log("Receipt says: " + receipt.contractAddress)})
+	.then(function(newContractInstance) {
+	    console.log("New Project contract address: " + newContractInstance.options.address)
+		// TODO 3 Should be enough to `update` Project with newContractInstance, but
+		// addTask() fails if I do not set at COntract creation time the default accounts
+		Project = new web3.eth.Contract(contractAbi, newContractInstance.options.address, {from: userAccount});
+		// refresh also the corresponding Drop token contract
+		Project.methods.getDropAddress().call().then( function(result) {
+    		drpContractAddress = result;
+	    	$('#console').append("<p>DRP Token address: " +  drpContractAddress + "</p>");
+	    	Drop = new web3.eth.Contract(drpContractAbi, drpContractAddress, {from: userAccount});
+		});
+
+		// Refresh the view with new value
+		$("#contract-address").text("Contract address: " + newContractInstance.options.address);
+	})
 });
 
 // Keep console scrolled at the end (not working on Firefox)
