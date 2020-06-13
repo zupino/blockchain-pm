@@ -1,9 +1,7 @@
 # Latest changes (branch release notes)
 
 - `Drop` is an ERC20 token used to assign budget to Project and Tasks.
-- `Project`s are still created as contract deployment, because they need an address to receive tokens. Budget is now assigned by transferring DRP token to it, and not by adding Ether to the contract creation transaction.
-- Note the project used to evaluate this solution is `ProjectExternalTask.sol`, `Project.sol` is the same as before.
-- The project funds are transferred manually by the Project Manager (DRP contract deployer).
+- `Project`s are still created as contract deployment, because they need an address to receive tokens. 
 - The tasks are created using the function `ProjectExternalTask.createTask()`. Task-id, title and rewards are passed as parameters of this function
-- DRP token are automatically transferred from the Project to the Task when tasks are created via the `ProjectExternalTask.createTask()`
+- DRP token are automatically transferred from the Project when `Assignee` or `Oracle` are assigned, together with their respective rewards 
 
