@@ -6,6 +6,16 @@ Since some functionality require deeper knowledge on Atlassian SDK, this branch 
 to provide some functionality integrated in JIRA while other would be exposed as standalone, 
 vanilla web3 frontend.
 
+- Install node dependencies for router.js to work. From node-server directory
+```
+npm install
+npm install express-http-proxy --save
+```
+- As usual, JSON Contract interface are not included in the repo, so you need to generate them again
+```
+truffle compile
+```
+
 ## Main component
 This is a standard truffle project, the webapp directory contains a simple Web frontend
 realized with vanilla Web3. 
