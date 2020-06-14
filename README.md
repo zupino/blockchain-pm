@@ -1,8 +1,10 @@
 # Latest change for this feature branch
-branch: token-transfer-ui
+branch: mixed-frontend-atlas-connect
 
-Note: truffle-config.js point to localhost network, to connect to the docker container
-with the private network, use the following network parameters:
+This feature branch is intended to be a functional prototype on an real JIRA instance. 
+Since some functionality require deeper knowledge on Atlassian SDK, this branch is intended
+to provide some functionality integrated in JIRA while other would be exposed as standalone, 
+vanilla web3 frontend.
 
 ## Main component
 This is a standard truffle project, the webapp directory contains a simple Web frontend
