@@ -10,6 +10,7 @@ vanilla web3 frontend.
 ```
 npm install
 npm install express-http-proxy --save
+npm install atlassian-jwt
 ```
 - As usual, JSON Contract interface are not included in the repo, so you need to generate them again
 ```
