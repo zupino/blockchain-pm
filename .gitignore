@@ -11,3 +11,6 @@ webapp/Drop.json
 
 # exclude vi swap files
 *.swp
+
+# exclude credential file for Atlassian
+custom-scuffold/credential.json

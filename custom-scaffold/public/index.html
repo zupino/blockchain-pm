@@ -1,0 +1,350 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Vanilla Web3 example</title>
+	<link rel="stylesheet" type="text/css" href="style.css" >
+</head>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script>
+
+/* 
+ * Variables and constants 
+*/
+
+// Full URI of the geth RPC node
+// var providerURI = "http://172.18.0.2:8545";
+var providerURI = "https://7ae55b3af41c.ngrok.io/provider";
+//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
+var contractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Project.json";
+var drpContractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Drop.json";
+
+// Entire JSON interface for used contracts
+// TODO 1 not efficient, some data is redundant
+var prjCntractInterface = "" 
+
+var contractAbi = "";
+const contractAddress = "0xA498730423825C107497E491b6C8Bca67BF65e0B";
+var drpContractAddress = "";
+const userAccount = "0x2B64e6fF555D41FdE621b3062DF2aA81a081B33d";
+// this will be used to unlock the account
+const userPassword = "";
+
+
+/*
+ * Retrieve the contracts JSON interfaces and their ABI
+*/
+
+$.ajax({
+	url: contractAbiURI,
+	dataType: 'json',
+	async: false,
+	success: function(json){
+		// TODO 1.1
+		prjContractInterface = json;
+		contractAbi = json.abi;
+	},
+	error: function() {
+		alert("Not possible to retrieve contract JSON interface");
+	}
+});
+
+$.ajax({
+    url: drpContractAbiURI,
+    dataType: 'json',
+    async: false,
+    success: function(json){
+        drpContractAbi = json.abi;
+    },
+    error: function() {
+        alert("Not possible to retrieve contract JSON interface");
+    }
+});
+
+/*
+ * Connect web3 to provider
+*/
+
+var web3 = new Web3(
+//  new Web3.providers.WebsocketProvider(
+	new Web3.providers.HttpProvider(
+    providerURI,
+    {
+      headers: [{
+        name: 'Access-Control-Allow-Origin',
+        value: 'ngrok.io'
+      }]
+    }
+  )
+);
+
+// var web3 = new Web3(Web3.givenProvider || providerURI);
+
+
+/*
+ * Unlock user account TBD
+*/
+
+/*
+ * Check provider connection TBD
+*/
+
+web3.eth.defaultAccount = userAccount;
+
+Project = new web3.eth.Contract(contractAbi, contractAddress, {from: userAccount});
+
+// retrieve value of Project budget
+Project.methods.drp().call().then( function(result) {
+	drpContractAddress = result;
+	$('#console').append("<p>DRP Token address: " +  drpContractAddress + "</p>");
+	Drop = new web3.eth.Contract(drpContractAbi, drpContractAddress, {from: userAccount});
+});
+
+
+</script>
+<body>
+
+<div id="content">
+    
+	<fieldset>
+	<legend>Available accounts</legend>
+	<div id="account-list">
+	</div>
+		<input id="account-balance-address" value="0xE90055138754e30DC4803218835B8A3019c9fA17"></input>
+		<button id="account-balance">Get balance</button>
+		<span id="balance"></span>
+	</fieldset>
+    
+    <fieldset>
+    <legend>Project operations</legend>
+    <div id="project-operations">
+        <button id="get-project-budget-ether">Get Ether budget</button>
+        <button id="get-project-budget-drops">Get Drops budget</button>
+		<p>Create new project with specified budget</p>
+		<input id="create-project-budget" value="25000"></input>
+		<button id="create-project">Create new Project</button>
+    </fieldset>
+    
+    <fieldset>
+    <legend>Task operations</legend>
+
+    <div id="create-new-task">
+		<p>Create new task</p>
+        <input id="task-title" type="text" value="Hello there">
+        <input id="task-id" type="number">
+        <button id="add-task" value="Add task">Add</button>
+    </div>
+    <div id="set-task-workers-div">
+		<p>Assign oracle and assignee</p>
+
+        <input id="set-task-workers-id" value="3" type="number">
+        <input id="set-task-oracle-address" value="0x6c4113D838a73d94C2D6Aa270A31913637f66BBc">
+        <input id="set-task-oracle-compensation" value="15" type="number">
+
+        <input id="set-task-assignee-address" value="0x2Fb103C65e0f0018c50779bBe0ADd24D4be1200e">
+        <input id="set-task-assignee-compensation" value="35" type="number">
+
+        <button id="set-task-workers">Assign</button>
+
+    </div>
+
+	<div id="start-task-div">
+		<p>Start working on task (both Oracle and Assignee must send deposit)</p>
+        <input id="start-task-id" value="3" type="number" >
+		<input id="start-task-deposit" value="5" type="hidden" >
+        <input id="start-task-sender" value="0x2Fb103C65e0f0018c50779bBe0ADd24D4be1200e">
+		<button id="start-task">Accept</button>
+	</div>
+
+	<div id="resolve-task-div">
+		<p>Resolve Task (Assignee only)</p>
+		<input id="resolve-task-id" value="3" type="number" >
+		<input id="resolve-task-sender" value="0x2Fb103C65e0f0018c50779bBe0ADd24D4be1200e">
+        <button id="resolve-task">Resolve</button>
+	</div>
+
+	<div id="close-task-div">
+		<p>Close Task (Oracle only)</p>
+        <input id="close-task-id" value="3" type="number" >
+        <input id="close-task-sender" value="0x6c4113D838a73d94C2D6Aa270A31913637f66BBc">
+        <button id="close-task">Close</button>
+    </div>
+	
+	</fieldset>
+
+    <div id="add-operators">
+    </div>
+
+	<div id="console">
+	</div>
+</div>
+
+<script>
+
+// retrieve list of accounts from geth node
+$("#account-list").append("<p id='contract-address'>Contract address: " + contractAddress + "</p>");
+web3.eth.getAccounts().then( function(result) {
+    result.forEach( function(element) {
+		//web3.eth.getBalance(element).then( (value) => $("#account-list").append("<p>" + element + ", balance: " + web3.utils.fromWei(value, 'ether') + " (ether) and " + drpBalance +  " (DRP) </p>"));
+		var i = 0;
+		$("#account-list").append("<p>" + element + "</p>");
+		i++;
+		})
+});
+
+
+//        Drop.methods.balanceOf(element).call()
+
+
+
+// Get account balance
+$("#account-balance").click( function() {
+	
+	web3.eth.getBalance( $("#account-balance-address").val() ).then( function(ethBalance) {
+            $("#balance").text("...");
+		Drop.methods.balanceOf($("#account-balance-address").val()).call().then( function(drpBalance) {
+			$("#balance").text( web3.utils.fromWei(ethBalance, 'ether') + " Ether and " + drpBalance + " DRP");
+		});
+	});
+
+});
+
+// Get project budget Ether
+$("#get-project-budget-ether").click( function() {
+	web3.eth.getBalance(contractAddress).then( function(result){
+		$('#console').append("<p>Current project budget (test Ether): " + result + "</p>");
+	});
+});
+
+// Get project budget Drops
+$("#get-project-budget-drops").click( function() {
+    Project.methods.getProjectBudgetDrop().call().then( function(result) {
+        $('#console').append("<p>Current project budget (DRP token): " + result + "</p>");
+    });
+});
+
+// Add Task
+$("#add-task").click( function() {
+	Project.methods.addTask($( "#task-title" ).val(), $("#task-id").val() ).send(function(error, transactionHash) {
+		$('#console').append("<p>[" + transactionHash + "]</p>");
+		$('#console').append("<p>Error: " + error + "</p>");
+	});
+});
+
+// Set Task workers
+$("#set-task-workers").click( function() {
+	tid = $("#set-task-workers-id").val();
+	assignee = $("#set-task-assignee-address").val();
+	oracle = $("#set-task-oracle-address").val();
+	aComp = $("#set-task-assignee-compensation").val();
+	oComp = $("#set-task-oracle-compensation").val();
+
+	Project.methods.setTaskAssignee( tid, assignee, aComp  ).send()
+		.on('receipt', function(receipt) {
+            $('#console').append("<p>setTaskAssignee() called</p>");
+        	$('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
+        	$('#console').append("<p>Gas used: " + receipt.gasUsed + "</p>");
+		})
+		.on('error', function(error) {
+            $('#console').append("<p>setTaskAssignee() called</p>");
+			$('#console').append("<p>Error #: " + error + "</p>");
+		})
+
+
+    Project.methods.setTaskOracle( tid, oracle, oComp  ).send() 
+        .on('receipt', function(receipt) {
+            $('#console').append("<p>setTaskOracle() called</p>");
+            $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
+            $('#console').append("<p>Gas used: " + receipt.gasUsed + "</p>");
+        })
+        .on('error', function(error) {
+            $('#console').append("<p>setTaskOracle() called</p>");
+            $('#console').append("<p>Error #: " + error + "</p>");
+        })
+
+});
+
+$("#start-task").click( function() {
+    tid = $("#start-task-id").val();
+	addr = $("#start-task-sender").val();
+	deposit = $("#start-task-deposit").val();
+	Project.methods.startWorkingOnTask(tid).send({from: addr, value: deposit})
+		.on('receipt', function(receipt) {
+			$('#console').append("<p>starWorkingOnTask() called by "+ addr +"</p>");
+            $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
+            $('#console').append("<p>Gas used: " + receipt.gasUsed + "</p>");
+		})
+		.on('error', function(error){
+            $('#console').append("<p>starWorkingOnTask() called by "+ addr +"</p>");
+            $('#console').append("<p>Error #: " + error + "</p>");
+		})
+});
+
+$("#resolve-task").click( function() {
+    tid = $("#resolve-task-id").val();
+    addr = $("#resolve-task-sender").val();
+    Project.methods.resolveTask(tid).send({from: addr})
+		.on('receipt', function(receipt) {
+            $('#console').append("<p>resolveTask() called by "+ addr +"</p>");
+            $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
+            $('#console').append("<p>Gas used: " + receipt.gasUsed + "</p>");
+        })
+		.on('error', function(error) {
+			$('#console').append("<p>resolveTask() called by "+ addr +"</p>");
+            $('#console').append("<p>Error #: " + error + "</p>");
+		})
+});
+
+$("#close-task").click( function() {
+    tid = $("#close-task-id").val();
+    addr = $("#close-task-sender").val();
+    Project.methods.closeTask(tid).send({from: addr})
+		.on('receipt', function(receipt) {
+            $('#console').append("<p>closeTask() called by "+ addr +"</p>");
+            $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
+            $('#console').append("<p>Gas used: " + receipt.gasUsed + "</p>");
+        })
+        .on('error', function(error) {
+            $('#console').append("<p>closeTask() called by "+ addr +"</p>");
+            $('#console').append("<p>Error #: " + error + "</p>");
+        })
+
+});
+
+$("#create-project").click( function() {
+	prjBudget = $("#create-project-budget").val();
+
+	prjTemp = new web3.eth.Contract(contractAbi);
+	prjTemp.deploy({
+		data: prjContractInterface.bytecode,
+		arguments: []
+	})
+	.send({from: userAccount, value: prjBudget})
+	.on('error', function(error) { console.log(error)})
+	.on('receipt', function(receipt) { console.log("Receipt says: " + receipt.contractAddress)})
+	.then(function(newContractInstance) {
+	    console.log("New Project contract address: " + newContractInstance.options.address)
+		// TODO 3 Should be enough to `update` Project with newContractInstance, but
+		// addTask() fails if I do not set at COntract creation time the default accounts
+		Project = new web3.eth.Contract(contractAbi, newContractInstance.options.address, {from: userAccount});
+		// refresh also the corresponding Drop token contract
+		Project.methods.getDropAddress().call().then( function(result) {
+    		drpContractAddress = result;
+	    	$('#console').append("<p>DRP Token address: " +  drpContractAddress + "</p>");
+	    	Drop = new web3.eth.Contract(drpContractAbi, drpContractAddress, {from: userAccount});
+		});
+
+		// Refresh the view with new value
+		$("#contract-address").text("Contract address: " + newContractInstance.options.address);
+	})
+});
+
+// Keep console scrolled at the end (not working on Firefox)
+$('#console').scrollTop($('#console')[0].scrollHeight);
+
+</script>
+
+</body>
+</html>

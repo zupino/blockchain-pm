@@ -1,0 +1,58 @@
+{
+    "name": "Blockchain PM",
+    "description": "Trustless PM settlement",
+    "key": "com.example.myapp",
+    "baseUrl": "{{localBaseUrl}}",
+	"authentication": {
+        "type": "jwt"
+    },
+    "lifecycle": {
+        "installed": "/installed"
+    },
+    "scopes": [
+        "read", "write"
+    ],
+    "vendor": {
+        "name": "Zupo GmbH",
+        "url": "{{localBaseUrl}}"
+    },
+    "apiVersion": 1,
+    "modules": {
+        "jiraProjectAdminTabPanels": [
+            {
+                "location": "projectgroup1",
+                "url": "/bp-project-settings",
+                "weight": 100,
+                "name": {
+                    "value": "Admin Panel"
+                },
+                "key": "admin-panel"
+            }
+        ],
+        "webhooks": [
+            {
+                "event": "project_created",
+                "url": "/project-created"
+            }
+        ],
+        "jiraIssueFields": [
+            {
+                "key": "oracle-address-issue-field",
+                "name": {
+                    "value": "Oracle"
+                },
+                "description": {
+                    "value": "Oracle to accept the resolved Issue"
+                },
+                "type": "single_select",
+                "extractions": [
+                    {
+                        "path": "category",
+                        "type": "string",
+                        "name": "category"
+                    }
+                ]
+            }
+        ]
+    }
+}
