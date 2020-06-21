@@ -16,16 +16,12 @@ const userAccount = "0x2b64e6ff555d41fde621b3062df2aa81a081b33d";
 var prjContractAddress = "";
 var drpContractAddress = "";
 
-let Project = new web3js.eth.Contract(prjContractInt.abi, prjContractAddress, {
-    from: userAccount
-});
-
+var Project = null;
+var Drop = null;
 
 export default function routes(app, addon) {
     
-
-	// Redirect root path to /atlassian-connect.json,
-    // which will be served by atlassian-connect-express.
+	// ==>  Redirect root path to /atlassian-connect.json,
     app.get('/', (req, res) => {
         res.redirect('/atlassian-connect.json');
     });
@@ -40,7 +36,7 @@ export default function routes(app, addon) {
         });
     });
 
-    // Webhook for project creation
+    // ==> Webhook for project creation
 	app.post('/project-created', addon.authenticate(), function(req,res) {
     // We check the project name instead of dedicated property
     // if project name starts with BPM, then we create the corresponding
@@ -53,8 +49,36 @@ export default function routes(app, addon) {
     var prjName = req.body.project.name;
     var prjLead = req.body.project.projectLead.accountId;
 
-
     if((prjName.substring(0,3) == "BPM") && (prjLead == "557058:d26095ad-03ff-4c8b-886a-0662adc8dbdc") ) {
+
+		// <project-contract-creation>
+		// Creation of Project contract instance on blockchain
+		var prjTemp = new web3js.eth.Contract(prjContractInt.abi);
+	    prjTemp.deploy({
+    	    data: prjContractInt.bytecode,
+        	arguments: []
+	    })
+		.send({from: userAccount, value: 250000})
+		.on('error', function(error) { console.log(error)})
+		.on('receipt', function(receipt) { console.log("Receipt says: " + receipt.contractAddress)})
+		.then(function(newContractInstance) {
+			console.log("New project contract address: " + newContractInstance.options.address);
+
+			// TODO 3 Should be enough to `update` Project with newContractInstance, but
+	        // addTask() fails if I do not set at COntract creation time the default accounts
+    	    Project = new web3js.eth.Contract(prjContractInt.abi, newContractInstance.options.address, {from: userAccount});
+			prjContractAddress = newContractInstance.options.address;
+
+			// Refresh also corresponding Drop contract address
+			Project.methods.getDropAddress().call().then( function(result) {
+	            drpContractAddress = result;
+    	        Drop = new web3js.eth.Contract(drpContractInt.abi, drpContractAddress, {from: userAccount});
+	        });
+
+		})
+		// </project-contract-creation>
+		
+
         // Conditions are met, we create an Issue Webhook
         console.log("Project conditions are met, creating the POST request for the Issue webhook");
 
@@ -85,13 +109,13 @@ export default function routes(app, addon) {
 		);
 
     } else {
-        // Created project condtions are not met
+        // Created project conditions are not met
         res.sendStatus(204);
     }
 
 	});
 
-	// Webhook for Issue created
+	// ==> Webhook for Issue created
 	app.post('/issue-created', addon.authenticate(), function(req, res) {
 
         /*
