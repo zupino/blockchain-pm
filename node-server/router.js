@@ -1,5 +1,21 @@
 'use strict';
 
+/*
+*	This file is kept for historical reason, 
+*	my expectation is that it can safely be deleted
+*	since all the relevant content has been 
+*	migrated to ../custom-scaffold/routes/index.js 
+*	
+*	It is quite late now and I could not confirm
+*	100% all has been moved, but Project, Drop and 
+*	Task creation on blockchain works there as
+*	reaction to JIRA corresponding event and webhook
+*	
+*	If there is nothing more than that here, delete
+*
+*/
+
+
 // TODO relative path not ok
 const prjContractInt = require('../build/contracts/Project.json');
 const drpContractInt = require('../build/contracts/Drop.json');
@@ -7,6 +23,12 @@ const drpContractInt = require('../build/contracts/Drop.json');
 const web3 = require('web3');
 const express = require('express');
 const bodyParser = require('body-parser');
+const proxy = require('express-http-proxy'); 
+const axios = require('axios');
+const jwt = require('atlassian-jwt');
+const moment = require('moment');
+
+//import moment from 'moment';
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -27,13 +49,26 @@ let Project = new web3js.eth.Contract(prjContractInt.abi, prjContractAddress, {
     from: userAccount,
 });
 
-app.use(express.static("public"));
-app.use(express.static("blockchain-pm"));
+app.use(express.static("./public"));
+app.use(express.static(".."));
+app.use(express.static("../build/"));
+
+// try to get the Web3 provider connection through the same server
+// by proxying RPC calls
+app.use('/provider', proxy('http://172.18.0.3:8545'));
 
 app.get('/bp-project-settings', function(req,res) {
 		res.send("Admin page all set!");
 });
 
+// Webhook for plugin installation, will get the 
+// JWT secret here
+app.post('/installed', function(req, res) {
+	console.log("Received security context.");
+	res.sendStatus(200);
+});
+
+// Webhook for Issue created
 app.post('/issue-created', function(req, res) {
 
 		/*
@@ -88,6 +123,65 @@ app.post('/issue-created', function(req, res) {
 				res.sendStatus(500);
 			})
 
+});
+
+// Webhook for Project created
+app.post('/project-created', function(req,res) {
+	// We check the project name instead of dedicated property
+	// if project name starts with BPM, then we create the corresponding
+	// Blockchain contract
+	
+	// basic checks
+	var prjName = req.body.project.name;
+	var prjLead = req.body.project.projectLead.accountId;
+
+
+	if((prjName.substring(0,3) == "BPM") && (prjLead == "557058:d26095ad-03ff-4c8b-886a-0662adc8dbdc") ) {
+		// Conditions are met, we create an Issue Webhook
+		console.log("Project conditions are met, creating the POST request for the Issue webhook");
+
+		// prepare the JWT for authenticate the API request
+		var now = moment.utc();
+		var req = jwt.fromMethodAndUrl('POST', '/rest/api/2/webhook');
+
+		var tokenData = {
+			"iss": 'issuer-val',
+			"iat": now.unix(),
+			"exp": now.add(3, 'minutes').unix(),
+			"qsh": jwt.createQueryStringHash(req)
+		};
+
+		var secret = 'EGgBMAJfFqtUfD4wE/gURVGYDK84ssvv+KTgxogJt+p+hik4hLV7/KElVmu2srZNzrG1z+rfQStEoJvLb0tK0g';
+
+		var token = jwt.encode(tokenData, secret);
+
+		var data = {
+			'url': 'https://0fd4a6c6211e.ngrok.io/issue-created',
+			'webhooks': [
+				{
+					'jqlFilter': "project = " + prjName,
+					'events': ["jira:issue_created", "jira:issue_updated"]
+				}
+			]
+		};
+
+		var headers = {
+			'Authorization': 'JWT ' + token
+		};
+
+		axios.post('https://blockchain-pm.atlassian.net/rest/api/2/webhook', data, { headers: headers})
+			.then((res) => {
+        		console.log(`Status: ${res.status}`);
+        		console.log('Body: ', res.data);
+    		}).catch((err) => {
+        		console.error(err);
+    		});
+		
+	} else {
+		// Created project condtions are not met
+		res.sendStatus(204);
+	}
+	
 });
 
 app.get('/sendtx',function(req,res){
