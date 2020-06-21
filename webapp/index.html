@@ -16,19 +16,19 @@
 
 // Full URI of the geth RPC node
 // var providerURI = "http://172.18.0.2:8545";
-var providerURI = "http://08fe39a9.ngrok.io";
+var providerURI = "https://0fd4a6c6211e.ngrok.io/provider";
 //var contractAbiURI = "http://127.0.0.1:8000/Project.json";
-var contractAbiURI = "http://95295df6.ngrok.io/Project.json";
-var drpContractAbiURI = "http://95295df6.ngrok.io/Drop.json";
+var contractAbiURI = "https://0fd4a6c6211e.ngrok.io/contracts/Project.json";
+var drpContractAbiURI = "https://0fd4a6c6211e.ngrok.io/contracts/Drop.json";
 
 // Entire JSON interface for used contracts
 // TODO 1 not efficient, some data is redundant
 var prjCntractInterface = "" 
 
 var contractAbi = "";
-const contractAddress = "0xC2F288767076236719eCf219ad9d69f394dE9C7E";
+const contractAddress = "0xA498730423825C107497E491b6C8Bca67BF65e0B";
 var drpContractAddress = "";
-const userAccount = "0xE90055138754e30DC4803218835B8A3019c9fA17";
+const userAccount = "0x2B64e6fF555D41FdE621b3062DF2aA81a081B33d";
 // this will be used to unlock the account
 const userPassword = "";
 
@@ -96,7 +96,7 @@ web3.eth.defaultAccount = userAccount;
 Project = new web3.eth.Contract(contractAbi, contractAddress, {from: userAccount});
 
 // retrieve value of Project budget
-Project.methods.getDropAddress().call().then( function(result) {
+Project.methods.drp().call().then( function(result) {
 	drpContractAddress = result;
 	$('#console').append("<p>DRP Token address: " +  drpContractAddress + "</p>");
 	Drop = new web3.eth.Contract(drpContractAbi, drpContractAddress, {from: userAccount});
