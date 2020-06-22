@@ -1,6 +1,14 @@
 # exclude truffle build folder
 build/
 
+# npm cache
+.cache/
+.config/
+.npm/
+
+# Node server was an initial directory for experiment
+node-server/
+
 # exclude Drizzle npm node_modules
 webapp/node_modules
 node-server/node_modules
