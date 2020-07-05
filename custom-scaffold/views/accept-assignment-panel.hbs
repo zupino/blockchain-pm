@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://aui-cdn.atlassian.com/aui-adg/5.9.17/css/aui.min.css" media="all">
+    <!-- <script src="https://ac-getting-started.atlassian.net/atlassian-connect/all.js"></script> -->
+    <script src="https://connect-cdn.atl-paas.net/all.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="https://aui-cdn.atlassian.com/aui-adg/5.9.17/js/aui.min.js"></script>
+
+	<!-- Web3, JQuery and Users addresses imports -->
+	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://7ae55b3af41c.ngrok.io/js/userModule.js"></script>
+	<script>
+	
+
+	/* 
+	 * Variables and constants 
+	*/
+	
+	// Full URI of the geth RPC node
+	// var providerURI = "http://172.18.0.2:8545";
+	var providerURI = "https://7ae55b3af41c.ngrok.io/provider";
+	//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
+	var contractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Project.json";
+	var drpContractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Drop.json";
+	
+	// Entire JSON interface for used contracts
+	// TODO 1 not efficient, some data is redundant
+	var prjContractInterface = "" 
+	
+	var contractAbi = "";
+	var contractAddress = "";
+	var drpContractAddress = "";
+
+	var userAccount = "";
+	var Project;
+
+	AP.user.getCurrentUser(function(user) {
+        console.log("The Atlassian Account ID is", user.atlassianAccountId);
+		userAccount = this.userModule.getUserAddress(user.atlassianAccountId);
+		console.log("The corresponding address is", userAccount);
+
+		/*
+	     * Create JS Project contract instance
+    	*/
+
+	    if(userAccount != "") {
+    	    Project = new web3.eth.Contract(contractAbi, contractAddress, {from: userAccount});
+	    } else {
+        	console.log("The userAddr is not available yet, failed Project contract creation in JS.");
+    	}
+	
+    });
+
+	/*
+	 * Retrieve the contracts JSON interfaces and their ABI
+	*/
+
+	$.ajax({
+	    url: contractAbiURI,
+	    dataType: 'json',
+	    async: false,
+	    success: function(json){
+	        // TODO 1.1
+	        prjContractInterface = json;
+	        contractAbi = json.abi;
+	    },
+	    error: function() {
+	        alert("Not possible to retrieve contract JSON interface");
+	    }
+	});
+
+	$.ajax({
+	    url: drpContractAbiURI,
+	    dataType: 'json',
+    	async: false,
+	    success: function(json){
+        	drpContractAbi = json.abi;
+    	},
+	    error: function() {
+        	alert("Not possible to retrieve contract JSON interface");
+    	}
+	});
+
+	/*
+	 * Connect web3 to provider
+	*/
+
+	var web3 = new Web3(
+	    new Web3.providers.HttpProvider(
+    	providerURI,
+	    {
+	      headers: [{
+	        name: 'Access-Control-Allow-Origin',
+	        value: 'ngrok.io'
+	      }]
+	    }
+	  )
+	);
+
+	</script>
+
+
+  </head>
+  <body class="aui-page-focused aui-page-focused-xlarge">
+    <div id="page" class="ac-content">
+      <section id="content">
+        <header class="aui-page-header">
+          <div class="aui-page-header-inner">
+            <div class="aui-page-header-main">
+              <p id="custom-message">This is an example WebPanel view for Issue ID: {{id}}.</p>
+				<input type="hidden" id="start-task-id" value="{{id}}" >
+				<input id="start-task-deposit" value="5" type="hidden" >
+		        <input id="start-task-sender" value="" type="hidden" >
+				<button id="start-task" class="aui-button">Accept assignment</button>
+			  </div>
+          </div>
+        </header>
+      </section>
+    </div>
+
+	<script>
+	$("#start-task").click( function() {
+    	tid = {{id}};
+	    deposit = $("#start-task-deposit").val();
+	    Project.methods.startWorkingOnTask(tid).send({from: userAccount, value: deposit})
+	        .on('receipt', function(receipt) {
+	            $('#console').append("<p>starWorkingOnTask() called by "+ userAccount +"</p>");
+	            $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
+	            $('#console').append("<p>Gas used: " + receipt.gasUsed + "</p>");
+	        })
+	        .on('error', function(error){
+	            $('#console').append("<p>starWorkingOnTask() called by "+ userAccount +"</p>");
+	            $('#console').append("<p>Error #: " + error + "</p>");
+	        })
+		});
+	
+	</script>
+
+  </body>
+</html>

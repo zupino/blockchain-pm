@@ -5,13 +5,21 @@ const util = require('util');
 const prjContractInt = require('../public/contract-interface/Project.json');
 const drpContractInt = require('../public/contract-interface/Drop.json');
 
+// Importing list of users with their addresses
+const user = require('../public/js/userModule.js'); 
+var tk = "";
+var userId = "";
+
+console.log("Mapping of user address: ", user.getUserAddress('557058:d26095ad-03ff-4c8b-886a-0662adc8dbdc'));
+
 // Web3 settings
 
-//Local HttpProvider Endpoint
+// Local HttpProvider Endpoint
+// public visible HTTP Provider: https://7ae55b3af41c.ngrok.io/provider
 let web3js = new web3(new web3.providers.HttpProvider("http://172.18.0.3:8545"));
 
 // User account
-const userAccount = "0x2b64e6ff555d41fde621b3062df2aa81a081b33d";
+var userAccount = "";
 
 var prjContractAddress = "";
 var drpContractAddress = "";
@@ -38,10 +46,22 @@ export default function routes(app, addon) {
 
     // ==> Webhook for project creation
 	app.post('/project-created', addon.authenticate(), function(req,res) {
-    // We check the project name instead of dedicated property
+    // start with retrieving current user address
+	// TODO this method is un-secure (read JWT claim without verifying signature)
+	// and also not the best, in general user addresses should be a JIRA user property
+	// or something. I am using this approach only in the prototype
+	tk = req.header('Authorization').split(' ')[1];
+	console.log("Token from POST Headers: ", tk);
+	userId = addon._jwt.decode(tk, null, true).sub;
+	userAccount = user.getUserAddress(userId);
+
+	// We check the project name instead of dedicated property
     // if project name starts with BPM, then we create the corresponding
     // Blockchain contract
-
+	// TODO just prototype validation based on project name and \
+	// hardcoded project lead user-id. Need project template approach 
+	// or different.
+	
 	// Get an instance of the ACE httpClient (which also handle JWT Auth for REST API requests)
 	var httpClient = addon.httpClient(req);
 	
@@ -58,14 +78,14 @@ export default function routes(app, addon) {
     	    data: prjContractInt.bytecode,
         	arguments: []
 	    })
-		.send({from: userAccount, value: 250000})
+		.send({from: userAccount, value: 25000})
 		.on('error', function(error) { console.log(error)})
 		.on('receipt', function(receipt) { console.log("Receipt says: " + receipt.contractAddress)})
 		.then(function(newContractInstance) {
 			console.log("New project contract address: " + newContractInstance.options.address);
 
 			// TODO 3 Should be enough to `update` Project with newContractInstance, but
-	        // addTask() fails if I do not set at COntract creation time the default accounts
+	        // addTask() fails if I do not set at Contract creation time the default accounts
     	    Project = new web3js.eth.Contract(prjContractInt.abi, newContractInstance.options.address, {from: userAccount});
 			prjContractAddress = newContractInstance.options.address;
 
@@ -102,7 +122,7 @@ export default function routes(app, addon) {
 			if(err) {
 				console.error("Problem in handling REST API request: ", err);
 			}
-			console.log("All good with REST API call. Response: ", httpResponse);
+			console.log("All good with REST API call. Full response object is omitted");
 			console.log("Response body: ", body);
 		}
 
@@ -117,6 +137,12 @@ export default function routes(app, addon) {
 
 	// ==> Webhook for Issue created
 	app.post('/issue-created', addon.authenticate(), function(req, res) {
+
+		// TODO again, unsecure retrieval of user-id from
+		// JWT, no verification of signature in place
+		tk = req.header('Authorization').split(' ')[1]
+	    userId = addon._jwt.decode(tk, null, true).sub
+    	userAccount = user.getUserAddress(userId);
 
         /*
         *   Issues custom fields
@@ -141,26 +167,25 @@ export default function routes(app, addon) {
 
         // Create new task in this project
         Project.methods.addTask( "[" + req.body.issue.key + "] " + req.body.issue.summary, tid ).send()
-            .on('confirmation', function(receipt) {
+            .on('receipt', function(receipt) {
                 console.log("Issue [" + tid + "] created.");
                 Project.methods.setTaskAssignee( tid, assignee, assigneeReward).send()
-                    .on('confirmation', function(receipt) {
+                    .on('receipt', function(receipt) {
                         console.log("Assignee assigned to task [" + tid + "].");
-                        res.sendStatus(200);
+
+						Project.methods.setTaskOracle( tid, oracle, oracleReward).send()
+		                    .on('receipt', function(receipt) {
+        		                console.log("Oracle assigned to task [" + tid + "].");
+                		        res.sendStatus(200);
+		                    })
+        		            .on('error', function(error) {
+                		        console.log("Error oracle assignment: " + error);
+                        		res.sendStatus(500);
+                    		})
+
                     })
                     .on('error', function(error) {
                         console.log("Error assignee assignment: " + error);
-                        res.sendStatus(500);
-                    })
-
-                console.log("Issue [" + tid + "] created.");
-                Project.methods.setTaskOracle( tid, oracle, oracleReward).send()
-                    .on('confirmation', function(receipt) {
-                        console.log("Oracle assigned to task [" + tid + "].");
-                        res.sendStatus(200);
-                    })
-                    .on('error', function(error) {
-                        console.log("Error oracle assignment: " + error);
                         res.sendStatus(500);
                     })
 
@@ -170,6 +195,17 @@ export default function routes(app, addon) {
                 res.sendStatus(500);
             })
 
+	});
+
+	// ==> Content of Accept Assignment Panel
+	app.get('/accept-assignment-panel', addon.authenticate(), function(req, res) {
+		// TODO This is totally unsafe, use just for prototype.
+		// the `null` parameter in the following decode() call 
+		// indicates a decoding of the JWT without the verification of 
+		// the signature, which defeat the scope of JWT in the first place
+		console.log(">>> UserId: ", addon._jwt.decode(req.query.jwt, null, true).sub );
+		console.log("Request for acceptance web-panel received: " + req.body);
+		res.render('accept-assignment-panel', {id : req.query['id']});
 	});
 
 

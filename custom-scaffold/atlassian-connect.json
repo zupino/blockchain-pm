@@ -18,15 +18,19 @@
     },
     "apiVersion": 1,
     "modules": {
-        "jiraProjectAdminTabPanels": [
+        "webPanels": [
             {
-                "location": "projectgroup1",
-                "url": "/bp-project-settings",
+                "location": "atl.jira.view.issue.left.context",
+				"layout": {
+					"width": "100%",
+					"height": "25px"
+				},
+                "url": "accept-assignment-panel?id={issue.id}&prjId={project.id}",
                 "weight": 100,
                 "name": {
-                    "value": "Admin Panel"
+                    "value": "Accept assignment panel"
                 },
-                "key": "admin-panel"
+                "key": "accept-assignment-panel"
             }
         ],
         "webhooks": [
