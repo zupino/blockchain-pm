@@ -4,13 +4,12 @@ const util = require('util');
 
 const prjContractInt = require('../public/contract-interface/Project.json');
 const drpContractInt = require('../public/contract-interface/Drop.json');
+const prjListContractInt = require('../public/contract-interface/ProjectList.json');
 
 // Importing list of users with their addresses
 const user = require('../public/js/userModule.js'); 
 var tk = "";
 var userId = "";
-
-console.log("Mapping of user address: ", user.getUserAddress('557058:d26095ad-03ff-4c8b-886a-0662adc8dbdc'));
 
 // Web3 settings
 
@@ -21,6 +20,12 @@ let web3js = new web3(new web3.providers.HttpProvider("http://172.18.0.3:8545"))
 // User account
 var userAccount = "";
 
+// TODO ProjectList contract is currently hardcoded, but still part 
+// of truffle migrate, ideally we should store the address of this
+// contract once deployed somewhere for the system to retrieve.
+// Maybe not an issue as this contract is intended to stay fixed, need
+// further thoughts.
+var prjListContractAddress = "0xaA68c1EA80F76B84C6bbe6b6d474F5DE63e532Ff";
 var prjContractAddress = "";
 var drpContractAddress = "";
 
@@ -68,10 +73,16 @@ export default function routes(app, addon) {
     // basic checks
     var prjName = req.body.project.name;
     var prjLead = req.body.project.projectLead.accountId;
+	var prjId 	= req.body.project.id; 
 
     if((prjName.substring(0,3) == "BPM") && (prjLead == "557058:d26095ad-03ff-4c8b-886a-0662adc8dbdc") ) {
 
 		// <project-contract-creation>
+
+		// Preparing the contract for ProjectList, to keep track
+		// of deployment address for Project contract
+		var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
+
 		// Creation of Project contract instance on blockchain
 		var prjTemp = new web3js.eth.Contract(prjContractInt.abi);
 	    prjTemp.deploy({
@@ -88,6 +99,17 @@ export default function routes(app, addon) {
 	        // addTask() fails if I do not set at Contract creation time the default accounts
     	    Project = new web3js.eth.Contract(prjContractInt.abi, newContractInstance.options.address, {from: userAccount});
 			prjContractAddress = newContractInstance.options.address;
+
+			// Adding this Project contract instance address to ProjectList contract
+			// for other component to retrieve later
+			ProjectList.methods.setProjectAddress(prjId, prjContractAddress).send({from: userAccount})
+				.on('receipt', function(receipt) {
+					console.log("New Project id " + prjId + " has been added to ProjectList, address: " + prjContractAddress);
+				})
+				.on('error', function(error) {
+					console.log("Error happened while storing new project address: ", error);
+				})
+
 
 			// Refresh also corresponding Drop contract address
 			Project.methods.getDropAddress().call().then( function(result) {
@@ -125,7 +147,6 @@ export default function routes(app, addon) {
 			console.log("All good with REST API call. Full response object is omitted");
 			console.log("Response body: ", body);
 		}
-
 		);
 
     } else {
@@ -205,7 +226,7 @@ export default function routes(app, addon) {
 		// the signature, which defeat the scope of JWT in the first place
 		console.log(">>> UserId: ", addon._jwt.decode(req.query.jwt, null, true).sub );
 		console.log("Request for acceptance web-panel received: " + req.body);
-		res.render('accept-assignment-panel', {id : req.query['id']});
+		res.render('accept-assignment-panel', {id : req.query['id'], prjId : req.query['prjId']});
 	});
 
 

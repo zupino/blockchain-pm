@@ -41,21 +41,14 @@
         ],
         "jiraIssueFields": [
             {
-                "key": "oracle-address-issue-field",
+                "key": "issue-blockchain-status",
                 "name": {
-                    "value": "Oracle"
+                    "value": "BlockchainStatus"
                 },
                 "description": {
-                    "value": "Oracle to accept the resolved Issue"
+                    "value": "The status of the corresponding blockchain Task"
                 },
-                "type": "single_select",
-                "extractions": [
-                    {
-                        "path": "category",
-                        "type": "string",
-                        "name": "category"
-                    }
-                ]
+                "type": "text"
             }
         ]
     }

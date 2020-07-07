@@ -17,6 +17,14 @@
 	/* 
 	 * Variables and constants 
 	*/
+
+	// TODO ProjectList contract is currently hardcoded, but still part 
+	// of truffle migrate, ideally we should store the address of this
+	// contract once deployed somewhere for the system to retrieve.
+	// Maybe not an issue as this contract is intended to stay fixed, need
+	// further thoughts.
+	var prjListContractAddress = "0xaA68c1EA80F76B84C6bbe6b6d474F5DE63e532Ff";
+
 	
 	// Full URI of the geth RPC node
 	// var providerURI = "http://172.18.0.2:8545";
@@ -24,34 +32,19 @@
 	//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
 	var contractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Project.json";
 	var drpContractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Drop.json";
+	var prjListContractIntURI = "https://7ae55b3af41c.ngrok.io/contract-interface/ProjectList.json"
 	
 	// Entire JSON interface for used contracts
 	// TODO 1 not efficient, some data is redundant
 	var prjContractInterface = "" 
 	
 	var contractAbi = "";
+	var prjListContractAbi = "";
 	var contractAddress = "";
 	var drpContractAddress = "";
 
 	var userAccount = "";
 	var Project;
-
-	AP.user.getCurrentUser(function(user) {
-        console.log("The Atlassian Account ID is", user.atlassianAccountId);
-		userAccount = this.userModule.getUserAddress(user.atlassianAccountId);
-		console.log("The corresponding address is", userAccount);
-
-		/*
-	     * Create JS Project contract instance
-    	*/
-
-	    if(userAccount != "") {
-    	    Project = new web3.eth.Contract(contractAbi, contractAddress, {from: userAccount});
-	    } else {
-        	console.log("The userAddr is not available yet, failed Project contract creation in JS.");
-    	}
-	
-    });
 
 	/*
 	 * Retrieve the contracts JSON interfaces and their ABI
@@ -83,6 +76,19 @@
     	}
 	});
 
+	$.ajax({
+        url: prjListContractIntURI,
+        dataType: 'json',
+        async: false,
+        success: function(json){
+            prjListContractAbi = json.abi;
+        },
+        error: function() {
+            alert("Not possible to retrieve contract JSON interface");
+        }
+    });
+
+
 	/*
 	 * Connect web3 to provider
 	*/
@@ -98,6 +104,35 @@
 	    }
 	  )
 	);
+
+	AP.user.getCurrentUser(function(user) {
+        console.log("The Atlassian Account ID is", user.atlassianAccountId);
+        userAccount = this.userModule.getUserAddress(user.atlassianAccountId);
+        console.log("The corresponding address is", userAccount);
+
+        /*
+        * Retrieve current Project address from contract ProjectList
+        */
+
+        var ProjectList = new web3.eth.Contract(prjListContractAbi, prjListContractAddress, {from: userAccount});
+		ProjectList.methods.getProjectAddress( {{prjId}} ).call( {from: userAccount} )
+			.then( function(result){
+
+				/*
+				* Create JS Project contract instance
+				*/
+
+				if(userAccount != "") {
+		            Project = new web3.eth.Contract(contractAbi, result, {from: userAccount});
+					contractAddress = result;
+		        } else {
+		            console.log("The userAddr is not available yet, failed Project contract creation in JS.");
+		        }
+
+			});
+
+    });
+
 
 	</script>
 
