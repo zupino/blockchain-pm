@@ -18,6 +18,7 @@ contract Project {
     event compensationReleased(address _to, uint _amount);
     event fundsWithdrawn(address _to, uint _amount);
 	event taskAdded(uint _id, address _addr);
+	event taskStatusChanged(uint _id, uint _status);
 
 	// Task acceptance deposit for both Oracle and Assignee
 	uint public defaultDeposit = 5;
@@ -148,6 +149,13 @@ contract Project {
             && t.status() == 0
             ) {
             t.openTask();
+			// TODO Apparently would make sense to emit the event 
+			// in the Task contract, but emitting it from Project
+			// contract make it easier for the NodeJS JIRA App 
+			// because the project contract address is already used, 
+			// while nowhere else the Task address is used. 
+			// Might re-factor if more cases like this one happens
+			emit taskStatusChanged(_id, 1);	
         }
         
     }
