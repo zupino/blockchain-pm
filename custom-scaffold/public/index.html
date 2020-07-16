@@ -16,10 +16,11 @@
 
 // Full URI of the geth RPC node
 // var providerURI = "http://172.18.0.2:8545";
-var providerURI = "https://7ae55b3af41c.ngrok.io/provider";
+// var providerURI = "https://7ae55b3af41c.ngrok.io/provider";
+var providerURI = "ws://dada1a42a50e.ngrok.io/ws-rpc"
 //var contractAbiURI = "http://127.0.0.1:8000/Project.json";
-var contractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Project.json";
-var drpContractAbiURI = "https://7ae55b3af41c.ngrok.io/contract-interface/Drop.json";
+var contractAbiURI = "https://dada1a42a50e.ngrok.io/contract-interface/Project.json";
+var drpContractAbiURI = "https://dada1a42a50e.ngrok.io/contract-interface/Drop.json";
 
 // Entire JSON interface for used contracts
 // TODO 1 not efficient, some data is redundant
@@ -68,8 +69,8 @@ $.ajax({
 */
 
 var web3 = new Web3(
-//  new Web3.providers.WebsocketProvider(
-	new Web3.providers.HttpProvider(
+    new Web3.providers.WebsocketProvider(
+//	new Web3.providers.HttpProvider(
     providerURI,
     {
       headers: [{
