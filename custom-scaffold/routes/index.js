@@ -15,7 +15,29 @@ var userId = "";
 
 // Local HttpProvider Endpoint
 // public visible HTTP Provider: https://7ae55b3af41c.ngrok.io/provider
-let web3js = new web3(new web3.providers.HttpProvider("http://172.18.0.3:8545"));
+// let web3js = new web3(new web3.providers.HttpProvider("http://172.18.0.3:8545"));
+const web3js = new web3(new web3.providers.WebsocketProvider("ws://172.18.0.3:8546", 
+	{
+      headers: [{
+        name: 'Access-Control-Allow-Origin',
+        value: 'ngrok.io'
+      }]
+    }
+));
+const provider = web3js.currentProvider;
+provider.on("connect", function(){
+	console.log("Web3 WebSocket provider connected.")
+});
+provider.on("error", function(error){
+	console.error("Problem Websocket provider connection: " + error)
+});
+web3js.eth.net.isListening( function(error, result)  {
+	if(error) {
+		console.error(error);
+	} else {
+		console.log("Websocket provider is listening.")
+	}
+})
 
 // User account
 var userAccount = "";
@@ -78,10 +100,14 @@ export default function routes(app, addon) {
     if((prjName.substring(0,3) == "BPM") && (prjLead == "557058:d26095ad-03ff-4c8b-886a-0662adc8dbdc") ) {
 
 		// <project-contract-creation>
-
+		console.log("Entering Project contract creation.");
 		// Preparing the contract for ProjectList, to keep track
 		// of deployment address for Project contract
 		var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
+		
+		ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
+			console.log("Project List created, should have address null: ", result);
+		})
 
 		// Creation of Project contract instance on blockchain
 		var prjTemp = new web3js.eth.Contract(prjContractInt.abi);
@@ -110,12 +136,62 @@ export default function routes(app, addon) {
 					console.log("Error happened while storing new project address: ", error);
 				})
 
-
 			// Refresh also corresponding Drop contract address
 			Project.methods.getDropAddress().call().then( function(result) {
 	            drpContractAddress = result;
     	        Drop = new web3js.eth.Contract(drpContractInt.abi, drpContractAddress, {from: userAccount});
 	        });
+
+			// Add listener for taskStatusChanged() event
+			Project.events.taskStatusChanged( {fromBlock: 0}, function(error, event) { console.log(event) })
+
+			// TODO This is just for debug, no need this event handled here
+			Project.events.taskAdded()
+				.on('data', function(event){
+				var d = web3js.eth.abi.decodeLog(
+				[{type: 'uint', name: '_id'}, {type: 'address', name: '_addr'}],
+				event.raw.data,
+				event.raw.topics
+				);
+				console.log("Data from event TaskAdded: ", d._id, d._addr);
+				//	console.log(JSON.stringify(event.args));
+				})
+/*
+function(error, event) {
+
+				// Retrieve IssueID from the event
+				var iid = event.returnValues._id;
+				var status = event.returnValues._status;
+				console.log("Received blockchain taskStatusChanged event for issue id ", iid);
+
+				// Call the PUT /rest/api/2/issue/{IssueIdorKey} API
+				var reqBody = {
+					'fields' : {
+						"customfield_10039" : 1
+					},
+					'labels' : [
+						{
+							'add' : 'blockchainSync'
+						}
+					]
+				};
+
+				httpClient.put({
+					headers: { 'Content-type': 'application/json' },
+					url: '/rest/api/2/issue/' + iid,
+					body: JSON.stringify(reqBody)
+				}, function (err, httpResponse, body) {
+					if(err) {
+						console.error("Problem handling REST API call for taskStatusChanged event.", err);
+					}
+					console.log("REST API call to update Issue " + iid + " succesfully executed.");
+					console.log("Response body: ", body);
+				}
+				);
+				
+			}
+*/
+			
 
 		})
 		// </project-contract-creation>
@@ -126,7 +202,7 @@ export default function routes(app, addon) {
 
 
         var data = {
-            'url': 'https://7ae55b3af41c.ngrok.io/issue-created',
+            'url': 'https://dada1a42a50e.ngrok.io/issue-created',
             'webhooks': [
                 {
                     'jqlFilter': "project = " + prjName,
