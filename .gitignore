@@ -17,6 +17,8 @@ node-server/node_modules
 # be run after a fresh clone
 webapp/Project.json
 webapp/Drop.json
+custom-scaffold/public/contract-interface/Drop.json
+custom-scaffold/public/contract-interface/Project.json
 
 # exclude vi swap files
 *.swp
