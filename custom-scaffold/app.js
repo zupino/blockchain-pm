@@ -32,6 +32,28 @@ import nocache from 'nocache';
 // Routes live here; this is the C in MVC
 import routes from './routes';
 
+// TODO WS 1 require npm install http-proxy-middleware, and need
+// to check if only 1 proxy solution can be used for both 
+// normal redirect and websocket
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+/**
+ * Configure proxy middleware for websocket
+ * TODO WS 2 also related to previous todo, better 1 proxy 
+ * solution only
+ */
+const wsProxy = createProxyMiddleware('/ws-rpc', {
+  target: 'ws://172.18.0.3:8546',
+  // pathRewrite: {
+  //  '^/websocket' : '/socket',        // rewrite path.
+  //  '^/removepath' : ''               // remove path.
+  // },
+  changeOrigin: true, // for vhosted sites, changes host header to match to target's host
+  ws: true, // enable websocket proxy
+  logLevel: 'debug',
+});
+
+
 // Bootstrap Express and atlassian-connect-express
 const app = express();
 const addon = ace(app);
@@ -45,6 +67,10 @@ const viewsDir = __dirname + '/views';
 app.engine('hbs', hbs.express4({partialsDir: viewsDir}));
 app.set('view engine', 'hbs');
 app.set('views', viewsDir);
+
+// Set the websocket proxy for this app
+// TODO WS 3 same as 2 todo above, might need refactor
+app.use(wsProxy);
 
 // Set no-referrer header on all requests
 app.use(function(req, res, next) {
@@ -84,6 +110,8 @@ app.use(express.static(staticDir));
 
 // try to get the Web3 provider connection through the same server
 // by proxying RPC calls
+// TODO might not be needed anymore as we add
+// WS proxing support
 app.use('/provider', proxy('http://172.18.0.3:8545'));
 
 
