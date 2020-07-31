@@ -20,6 +20,7 @@ webapp/Drop.json
 custom-scaffold/public/contract-interface/Drop.json
 custom-scaffold/public/contract-interface/Project.json
 custom-scaffold/public/contract-interface/ProjectList.json
+public/contract-interface/*
 
 # exclude vi swap files
 *.swp
