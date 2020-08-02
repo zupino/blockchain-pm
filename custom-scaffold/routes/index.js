@@ -7,7 +7,9 @@ const drpContractInt = require('../public/contract-interface/Drop.json');
 const prjListContractInt = require('../public/contract-interface/ProjectList.json');
 
 // Importing list of users with their addresses
-const user = require('../public/js/userModule.js'); 
+const user = require('../public/js/userModule.js');
+const constants = require('../public/js/constants.js');
+ 
 var tk = "";
 var userId = "";
 
@@ -79,6 +81,8 @@ export default function routes(app, addon) {
 	// or something. I am using this approach only in the prototype
 	tk = req.header('Authorization').split(' ')[1];
 	console.log("Token from POST Headers: ", tk);
+    console.log("Decoded token: ", addon._jwt.decode(tk, null, true));
+
 	userId = addon._jwt.decode(tk, null, true).sub;
 	userAccount = user.getUserAddress(userId);
 
@@ -99,7 +103,10 @@ export default function routes(app, addon) {
 
     if((prjName.substring(0,3) == "BPM") && (prjLead == "557058:d26095ad-03ff-4c8b-886a-0662adc8dbdc") ) {
 
+
 		// <project-contract-creation>
+
+
 		console.log("Entering Project contract creation.");
 		// Preparing the contract for ProjectList, to keep track
 		// of deployment address for Project contract
@@ -143,19 +150,60 @@ export default function routes(app, addon) {
 	        });
 
 			// Add listener for taskStatusChanged() event
-			Project.events.taskStatusChanged( {fromBlock: 0}, function(error, event) { console.log(event) })
+			Project.events.taskStatusChanged( {fromBlock: 0}, function(error, event) { 
+				
 
-			// TODO This is just for debug, no need this event handled here
-			Project.events.taskAdded()
+				console.log(event) 
+			});
+
+			
+			// Project.events.taskAdded();
+
+				Project.events.taskStatusChanged()
 				.on('data', function(event){
-				var d = web3js.eth.abi.decodeLog(
-				[{type: 'uint', name: '_id'}, {type: 'address', name: '_addr'}],
-				event.raw.data,
-				event.raw.topics
-				);
-				console.log("Data from event TaskAdded: ", d._id, d._addr);
-				//	console.log(JSON.stringify(event.args));
+
+				// Blockchain Task status are
+				// 0: new           3: closed
+				// 1: accepted      4: cancelled
+    			// 2: resolved      5: onhold
+				
+				// If Task is accepted, we change JIRA Issue
+				// status to 11 (In progress)
+				
+				if(event.returnValues._status == 1) {
+					console.log("Received event taskStatusChanged with Accepted status.")
+					console.log("Data from event.returnValues: ", event.returnValues._id, event.returnValues._status);
+	
+					// Transition id is found in JIRA Worflow
+					var bodyData = {  
+   		    	    	'transition': {
+	    	            'id': '11'
+    	    	    	}
+			        };
+
+		    	    // Use the ACE provided httpClient instead of Axios
+	    	    	httpClient.post({
+		    	        headers: { 'Content-type': 'application/json'},
+    			        url: '/rest/api/2/issue/' +  event.returnValues._id + '/transitions',
+		        	    body: JSON.stringify(bodyData)
+	    		    }, function(err, httpResponse, body) {
+			            if(err) {
+		    	            console.error("Problem in handling REST API request: ", err);
+			            }
+			            console.log("All good with REST API call. Full response object is omitted");
+			            console.log("Response body: ", body);
+			        }
+			        );
+
+
+				}
+
 				})
+
+	
+
+
+
 /*
 function(error, event) {
 
@@ -185,7 +233,7 @@ function(error, event) {
 						console.error("Problem handling REST API call for taskStatusChanged event.", err);
 					}
 					console.log("REST API call to update Issue " + iid + " succesfully executed.");
-					console.log("Response body: ", body);
+						console.log("Response body: ", body);
 				}
 				);
 				
@@ -194,15 +242,25 @@ function(error, event) {
 			
 
 		})
+
+
 		// </project-contract-creation>
 		
 
         // Conditions are met, we create an Issue Webhook
         console.log("Project conditions are met, creating the POST request for the Issue webhook");
+		console.log("The current ngrok URI is: ", constants.getNgrokURI());
 
+		// TODO	Important: currently (after 02.08.2020) the webhook for issue-created
+		//		has been added to the app descriptor. The one in the app descriptor has 
+		//		hardcoded filter on the BPMZupo65 project. 
+		//		In short, we still need the REST API programmatic creation of 
+		//		new issue-created webhooks when a new project is created, but 
+		//		we should rather rework into something like updating the filter
+		//		of the existing webhook rather then creating a new one. 
 
         var data = {
-            'url': 'https://dada1a42a50e.ngrok.io/issue-created',
+            'url': constants.getNgrokURI() + '/issue-created',
             'webhooks': [
                 {
                     'jqlFilter': "project = " + prjName,
@@ -235,19 +293,43 @@ function(error, event) {
 	// ==> Webhook for Issue created
 	app.post('/issue-created', addon.authenticate(), function(req, res) {
 
+		// TODO Retrieving the current logged-in user is not 
+		// reliable from JWT, the `sub` field which contains the 
+		// JIRA user-id is optional, and not always there. 
+		// This makes sense as webhooks are called by JIRA engine
+		// and webhook calls are not related 1 to 1 with JIRA users
+		// For this case (webhook issue-created) might makes more sense
+		// to retrieve the reporter of the Issue
+		
 		// TODO again, unsecure retrieval of user-id from
 		// JWT, no verification of signature in place
-		tk = req.header('Authorization').split(' ')[1]
-	    userId = addon._jwt.decode(tk, null, true).sub
+
+		var reporter = req.body.issue.fields.creator.accountId;
+
+		tk = req.header('Authorization').split(' ')[1];
+		console.log("Token from POST header: ", tk);
+		console.log("Decoded token: ", addon._jwt.decode(tk, null, true));
+	    userId = addon._jwt.decode(tk, null, true).sub;
+
+		if(!(userId))
+			userId = reporter;
+			
     	userAccount = user.getUserAddress(userId);
 
-        /*
+		var prjId = req.body.issue.fields.project.id;
+		var prjName = req.body.issue.fields.project.name;
+		
+		console.log("Current value userAccount: ", userAccount);
+		console.log("Current value userId (from JWT)", userId);
+
+		/*
         *   Issues custom fields
         *   
         *       - Oracle address:   req.body.issue.fields.customfield_10034.value
         *       - Assignee address: req.body.issue.fields.customfield_10035.value
         *       - Oracle reward:    req.body.issue.fields.customfield_10037
         *       - Assignee reward:  req.body.issue.fields.customfield_10038
+				- Issue reporter	req.body.issue.fields.creator.accountId
         *       
         *       - Project Key:      req.body.issue.fields.project.key
         *       - Issue summary:    req.body.issue.fields.summary
@@ -262,23 +344,34 @@ function(error, event) {
         var assigneeReward = req.body.issue.fields.customfield_10038;
         var tid = req.body.issue.id;
 
-        // Create new task in this project
-        Project.methods.addTask( "[" + req.body.issue.key + "] " + req.body.issue.summary, tid ).send()
+		// TODO MAS: I think I need to update Project contract instance
+        // here, in case there was no project creation in JIRA, but
+        // the current Issue project is a BPM Project
+        // This should also take line 204 into account,
+        // by removing the filter on currently created project.
+		var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
+		var Project = "";
+        ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
+            console.log("Project List created, address for " + prjName  + " : " + result);
+	        Project = new web3js.eth.Contract(prjContractInt.abi, result, {from: userAccount});
+
+			// Create new task in this project
+	        Project.methods.addTask( "[" + req.body.issue.key + "] " + req.body.issue.summary, tid ).send({from: userAccount})
             .on('receipt', function(receipt) {
                 console.log("Issue [" + tid + "] created.");
-                Project.methods.setTaskAssignee( tid, assignee, assigneeReward).send()
+                Project.methods.setTaskAssignee( tid, assignee, assigneeReward).send({from: userAccount})
                     .on('receipt', function(receipt) {
                         console.log("Assignee assigned to task [" + tid + "].");
 
-						Project.methods.setTaskOracle( tid, oracle, oracleReward).send()
-		                    .on('receipt', function(receipt) {
-        		                console.log("Oracle assigned to task [" + tid + "].");
-                		        res.sendStatus(200);
-		                    })
-        		            .on('error', function(error) {
-                		        console.log("Error oracle assignment: " + error);
-                        		res.sendStatus(500);
-                    		})
+                        Project.methods.setTaskOracle( tid, oracle, oracleReward).send({from: userAccount})
+                            .on('receipt', function(receipt) {
+                                console.log("Oracle assigned to task [" + tid + "].");
+                                res.sendStatus(200);
+                            })
+                            .on('error', function(error) {
+                                console.log("Error oracle assignment: " + error);
+                                res.sendStatus(500);
+                            })
 
                     })
                     .on('error', function(error) {
@@ -292,6 +385,8 @@ function(error, event) {
                 res.sendStatus(500);
             })
 
+        })
+
 	});
 
 	// ==> Content of Accept Assignment Panel
@@ -304,6 +399,5 @@ function(error, event) {
 		console.log("Request for acceptance web-panel received: " + req.body);
 		res.render('accept-assignment-panel', {id : req.query['id'], prjId : req.query['prjId']});
 	});
-
 
 }

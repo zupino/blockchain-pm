@@ -28,7 +28,7 @@
 	
 	// Full URI of the geth RPC node
 	// var providerURI = "http://172.18.0.2:8545";
-	var providerURI = "https://dada1a42a50e.ngrok.io/provider";
+	var providerURI = "ws://dada1a42a50e.ngrok.io/ws-rpc";
 	//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
 	var contractAbiURI = "https://dada1a42a50e.ngrok.io/contract-interface/Project.json";
 	var drpContractAbiURI = "https://dada1a42a50e.ngrok.io/contract-interface/Drop.json";
@@ -94,7 +94,7 @@
 	*/
 
 	var web3 = new Web3(
-	    new Web3.providers.HttpProvider(
+	    new Web3.providers.WebsocketProvider(
     	providerURI,
 	    {
 	      headers: [{
