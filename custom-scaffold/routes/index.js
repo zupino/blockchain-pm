@@ -49,7 +49,7 @@ var userAccount = "";
 // contract once deployed somewhere for the system to retrieve.
 // Maybe not an issue as this contract is intended to stay fixed, need
 // further thoughts.
-var prjListContractAddress = "0xaA68c1EA80F76B84C6bbe6b6d474F5DE63e532Ff";
+var prjListContractAddress = "0xA498730423825C107497E491b6C8Bca67BF65e0B";
 var prjContractAddress = "";
 var drpContractAddress = "";
 
@@ -62,6 +62,12 @@ export default function routes(app, addon) {
     app.get('/', (req, res) => {
         res.redirect('/atlassian-connect.json');
     });
+
+	// ==> Post installation webhook
+	app.post('/installed', (req,res) => {
+		// Webhook for plugin installation, currently does nothing 
+		
+	});
 
     // Hello-world example, kept for reference .
     app.get('/hello-world', addon.authenticate(), (req, res) => {
