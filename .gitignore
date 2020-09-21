@@ -1,6 +1,9 @@
 # exclude truffle build folder
 build/
 
+# Bash history file
+.bash_history
+
 # npm cache
 .cache/
 .config/
