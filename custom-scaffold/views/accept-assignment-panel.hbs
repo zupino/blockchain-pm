@@ -10,7 +10,8 @@
 	<!-- Web3, JQuery and Users addresses imports -->
 	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-	<script src="https://dada1a42a50e.ngrok.io/js/userModule.js"></script>
+	<script src="https://1c03b0583f6d.ngrok.io/js/userModule.js"></script>
+	<script src="https://1c03b0583f6d.ngrok.io/js/constants.js"></script>
 	<script>
 	
 
@@ -18,21 +19,29 @@
 	 * Variables and constants 
 	*/
 
+	// TODO	I wanted to import all the ngrok URI from a single
+	//		file `constants.js`, but that does not really make sense
+	//		here because this file is available through the ngrok
+	//		URI. The irony. 
+
 	// TODO ProjectList contract is currently hardcoded, but still part 
 	// of truffle migrate, ideally we should store the address of this
 	// contract once deployed somewhere for the system to retrieve.
 	// Maybe not an issue as this contract is intended to stay fixed, need
 	// further thoughts.
-	var prjListContractAddress = "0xaA68c1EA80F76B84C6bbe6b6d474F5DE63e532Ff";
+	//	var prjListContractAddress = "0xA498730423825C107497E491b6C8Bca67BF65e0B";
+	var prjListContractAddress = constants.getProjectListAddress();
+	console.log("Read global ProjectList contract address: ", prjListContractAddress);
 
 	
 	// Full URI of the geth RPC node
 	// var providerURI = "http://172.18.0.2:8545";
-	var providerURI = "ws://dada1a42a50e.ngrok.io/ws-rpc";
+	https://aa8383e95fb1.ngrok.io
+	var providerURI = "wss://1c03b0583f6d.ngrok.io/ws-rpc";
 	//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
-	var contractAbiURI = "https://dada1a42a50e.ngrok.io/contract-interface/Project.json";
-	var drpContractAbiURI = "https://dada1a42a50e.ngrok.io/contract-interface/Drop.json";
-	var prjListContractIntURI = "https://dada1a42a50e.ngrok.io/contract-interface/ProjectList.json"
+	var contractAbiURI = "https://1c03b0583f6d.ngrok.io/contract-interface/Project.json";
+	var drpContractAbiURI = "https://1c03b0583f6d.ngrok.io/contract-interface/Drop.json";
+	var prjListContractIntURI = "https://1c03b0583f6d.ngrok.io/contract-interface/ProjectList.json"
 	
 	// Entire JSON interface for used contracts
 	// TODO 1 not efficient, some data is redundant
@@ -93,6 +102,30 @@
 	 * Connect web3 to provider
 	*/
 
+	const web3 = new Web3(new Web3.providers.WebsocketProvider(providerURI,
+	    {
+	      headers: [{
+	        name: 'Access-Control-Allow-Origin',
+	        value: 'ngrok.io'
+	      }]
+	    }
+	));
+	const provider = web3.currentProvider;
+	provider.on("connect", function(){
+	    console.log("Web3 WebSocket provider connected.")
+	});
+	provider.on("error", function(error){
+	    console.error("Problem Websocket provider connection: " + error)
+	});
+	web3.eth.net.isListening( function(error, result)  {
+	    if(error) {
+	        console.error(error);
+	    } else {
+	        console.log("Websocket provider is listening.")
+    	}
+	})
+
+/*
 	var web3 = new Web3(
 	    new Web3.providers.WebsocketProvider(
     	providerURI,
@@ -104,7 +137,7 @@
 	    }
 	  )
 	);
-
+*/
 	AP.user.getCurrentUser(function(user) {
         console.log("The Atlassian Account ID is", user.atlassianAccountId);
         userAccount = this.userModule.getUserAddress(user.atlassianAccountId);
@@ -125,6 +158,7 @@
 				if(userAccount != "") {
 		            Project = new web3.eth.Contract(contractAbi, result, {from: userAccount});
 					contractAddress = result;
+					console.log("Project instance created. Address: ", contractAddress);
 		        } else {
 		            console.log("The userAddr is not available yet, failed Project contract creation in JS.");
 		        }
@@ -149,6 +183,8 @@
 				<input id="start-task-deposit" value="5" type="hidden" >
 		        <input id="start-task-sender" value="" type="hidden" >
 				<button id="start-task" class="aui-button">Accept assignment</button>
+				<img id="done" src='https://www.shareicon.net/data/128x128/2017/02/24/879486_green_512x512.png' width="20" style="visibility: hidden; margin: 0px" />
+
 			  </div>
           </div>
         </header>
@@ -159,15 +195,16 @@
 	$("#start-task").click( function() {
     	tid = {{id}};
 	    deposit = $("#start-task-deposit").val();
+		console.log("About to call Project.startWorkingOnTask("+ tid +") from: ", userAccount);
 	    Project.methods.startWorkingOnTask(tid).send({from: userAccount, value: deposit})
 	        .on('receipt', function(receipt) {
-	            $('#console').append("<p>starWorkingOnTask() called by "+ userAccount +"</p>");
-	            $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
-	            $('#console').append("<p>Gas used: " + receipt.gasUsed + "</p>");
+	            console.log("starWorkingOnTask() receipt received");
+	            // $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
+	            console.log("Gas used: " + receipt.gasUsed);
+				$("#done").show();
 	        })
 	        .on('error', function(error){
-	            $('#console').append("<p>starWorkingOnTask() called by "+ userAccount +"</p>");
-	            $('#console').append("<p>Error #: " + error + "</p>");
+	            console.log("starWorkingOnTask() error: "+ error);
 	        })
 		});
 	
