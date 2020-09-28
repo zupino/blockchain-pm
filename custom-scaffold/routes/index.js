@@ -1,5 +1,4 @@
 const web3 = require('web3');
-const axios = require('axios');
 const util = require('util');
 
 const prjContractInt = require('../public/contract-interface/Project.json');
@@ -62,12 +61,6 @@ export default function routes(app, addon) {
     app.get('/', (req, res) => {
         res.redirect('/atlassian-connect.json');
     });
-
-	// ==> Post installation webhook
-	app.post('/installed', (req,res) => {
-		// Webhook for plugin installation, currently does nothing 
-		
-	});
 
     // Hello-world example, kept for reference .
     app.get('/hello-world', addon.authenticate(), (req, res) => {
@@ -252,7 +245,6 @@ function(error, event) {
 
 		// </project-contract-creation>
 		
-
         // Conditions are met, we create an Issue Webhook
         console.log("Project conditions are met, creating the POST request for the Issue webhook");
 		console.log("The current ngrok URI is: ", constants.getNgrokURI());
@@ -390,6 +382,67 @@ function(error, event) {
                 console.log("Error creation Task: " + error);
                 res.sendStatus(500);
             })
+
+			// TODO	Review
+			// context: adding here the event subscription, when a task change status, 
+			// 			the callback will be executed. This should be set at plugin
+			//			installation time, but need to clarify the JIRA/Blockchain
+			//			porject lifecycle. Until then I place it here to test the feature.
+			//
+			//			We have exact same function on Project creation hook.
+
+			// Get an instance of the ACE httpClient (which also handle JWT Auth for REST API requests)
+	        var httpClient = addon.httpClient(req);
+
+			// Add listener for taskStatusChanged() event
+            Project.events.taskStatusChanged( {fromBlock: 0}, function(error, event) { 
+                console.log(event)
+            });
+
+			// << start taskStatusChanged callback
+            Project.events.taskStatusChanged()
+            .on('data', function(event){
+
+                // Blockchain Task status are
+                // 0: new           3: closed
+                // 1: accepted      4: cancelled
+                // 2: resolved      5: onhold
+
+                // If Task is accepted, we change JIRA Issue
+                // status to 2 (In progress)
+
+				// IN blockchain-pm.atlassian.net the workflow is BPM
+
+                if(event.returnValues._status == 1) {
+                    console.log("Received event taskStatusChanged with Accepted status (id 1).")
+                    console.log("Data from event.returnValues: ", event.returnValues._id, event.returnValues._status);
+
+                    // Transition id is found in JIRA Worflow
+                    var bodyData = {
+                        'transition': {
+                        'id': '11'
+                        }
+                    };
+
+                    // Use the ACE provided httpClient instead of Axios
+                    httpClient.post({
+                        headers: { 'Content-type': 'application/json'},
+                        url: '/rest/api/2/issue/' +  event.returnValues._id + '/transitions',
+                        body: JSON.stringify(bodyData)
+                    }, function(err, httpResponse, body) {
+                        if(err) {
+                            console.error("Problem in handling REST API request: ", err);
+                        }
+                        console.log("JIRA Issue state changed via REST API");
+                        console.log("Response body: ", body);
+                    }
+                    );
+
+
+                }
+
+                })
+			// end tastStatusChanged callback >>
 
         })
 
