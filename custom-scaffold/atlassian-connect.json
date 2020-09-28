@@ -41,6 +41,10 @@
 			{
 				"event": "jira:issue_created",
 				"url":	"/issue-created"
+			},
+			{
+				"event": "jira:issue_updated",
+				"url": "/issue-updated"
 			}
         ],
         "jiraIssueFields": [
