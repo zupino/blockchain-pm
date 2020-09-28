@@ -255,7 +255,14 @@ function(error, event) {
 		//		In short, we still need the REST API programmatic creation of 
 		//		new issue-created webhooks when a new project is created, but 
 		//		we should rather rework into something like updating the filter
-		//		of the existing webhook rather then creating a new one. 
+		//		of the existing webhook rather then creating a new one.
+
+		// 		Update: 29.09.2020 
+		//		The webhook on project-update has been added to the json app descriptor
+		//		and there is no filtering on project name, to simplify development.
+		//		The main reason is that Atlassian removed the possibility to 
+		//		create new project and associated existing project configuration
+		//		(only available on Pro version) 
 
         var data = {
             'url': constants.getNgrokURI() + '/issue-created',
@@ -446,6 +453,13 @@ function(error, event) {
 
         })
 
+	});
+
+	// ==> Webhook for jira:issue_updated
+	app.post('/issue-updated', addon.authenticate(), function(req,res) {
+		console.log(">>> Received event of an issue being updated");
+		console.log("Search the ngrok network traces to check body content.");
+		res.send("All right, got the request.")
 	});
 
 	// ==> Content of Accept Assignment Panel
