@@ -19,10 +19,11 @@
 	 * Variables and constants 
 	*/
 
-	// TODO	I wanted to import all the ngrok URI from a single
-	//		file `constants.js`, but that does not really make sense
-	//		here because this file is available through the ngrok
-	//		URI. The irony. 
+	// TODO	I wanted to import _all_ the ngrok URI from a single
+	//		file `constants.js`, but I need to explicitly mention 
+	//		the ngrok URI in the above script src property because
+	//		the constant.js file itself is served through ngrok.
+	//		The irony. 
 
 	// TODO ProjectList contract is currently hardcoded, but still part 
 	// of truffle migrate, ideally we should store the address of this
@@ -31,17 +32,18 @@
 	// further thoughts.
 	//	var prjListContractAddress = "0xA498730423825C107497E491b6C8Bca67BF65e0B";
 	var prjListContractAddress = constants.getProjectListAddress();
+	var ngrokUri = constants.getNgrokURI();	
 	console.log("Read global ProjectList contract address: ", prjListContractAddress);
 
 	
 	// Full URI of the geth RPC node
 	// var providerURI = "http://172.18.0.2:8545";
-	https://aa8383e95fb1.ngrok.io
-	var providerURI = "wss://1c03b0583f6d.ngrok.io/ws-rpc";
+	// https://aa8383e95fb1.ngrok.io
+	var providerURI = "wss://" + ngrokUri + "/ws-rpc";
 	//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
-	var contractAbiURI = "https://1c03b0583f6d.ngrok.io/contract-interface/Project.json";
-	var drpContractAbiURI = "https://1c03b0583f6d.ngrok.io/contract-interface/Drop.json";
-	var prjListContractIntURI = "https://1c03b0583f6d.ngrok.io/contract-interface/ProjectList.json"
+	var contractAbiURI = "https://" + ngrokUri + "/contract-interface/Project.json";
+	var drpContractAbiURI = "https://" + ngrokUri + "/contract-interface/Drop.json";
+	var prjListContractIntURI = "https://" + ngrokUri + "/contract-interface/ProjectList.json"
 	
 	// Entire JSON interface for used contracts
 	// TODO 1 not efficient, some data is redundant
@@ -99,10 +101,13 @@
 
 
 	/*
-	 * Connect web3 to provider
+	 * Connect web3 to provider, using Metamask first, if not direct WS connection to local geth node
 	*/
 
-	const web3 = new Web3(new Web3.providers.WebsocketProvider(providerURI,
+
+	// Old way, connect directly to geth
+	/*
+	const web3 = new Web3( Web3.givenProvider || new Web3.providers.WebsocketProvider(providerURI,
 	    {
 	      headers: [{
 	        name: 'Access-Control-Allow-Origin',
@@ -110,6 +115,18 @@
 	      }]
 	    }
 	));
+	*/
+
+	// Use Metamask provide, post 2020 way
+
+	if (window.ethereum) {
+		console.log("Metamask seems available. Proceeding...")
+		web3 = new Web3(window.ethereum);
+		window.ethereum.enable();
+	} else {
+		console.log("ERR Metamask not available")
+	}
+
 	const provider = web3.currentProvider;
 	provider.on("connect", function(){
 	    console.log("Web3 WebSocket provider connected.")
@@ -195,7 +212,8 @@
 	$("#start-task").click( function() {
     	tid = {{id}};
 	    deposit = $("#start-task-deposit").val();
-		console.log("About to call Project.startWorkingOnTask("+ tid +") from: ", userAccount);
+		console.log("About to call Project.startWorkingOnTask("+ tid +") from: " +  userAccount + " with a deposit of " + deposit);
+
 	    Project.methods.startWorkingOnTask(tid).send({from: userAccount, value: deposit})
 	        .on('receipt', function(receipt) {
 	            console.log("starWorkingOnTask() receipt received");

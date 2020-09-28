@@ -5,7 +5,7 @@
    
     // Function to be exposed 
     function getNgrokURI() { 
-        var uri = "https://80be20213764.ngrok.io";
+        var uri = "7207d407dee7.ngrok.io";
 
 	    return uri;
 
