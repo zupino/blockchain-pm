@@ -456,9 +456,70 @@ function(error, event) {
 	});
 
 	// ==> Webhook for jira:issue_updated
+
+	/*
+	*	Blockchain Task status are
+
+		0: new           3: closed
+		1: accepted      4: cancelled
+		2: resolved      5: onhold
+
+		JIRA Workflow (BPM) 
+		!!  This looks just wrong, BPM and State ID in the POST webhook 
+			requests are not matching
+
+        1: Open			 3: In Progress
+		5: Resolved		 5: Deleted
+		6: Cancelled
+
+		JIRA Transactions
+
+		11: accept (1 -> 2)		21: execute (2 -> 4)
+		31: accepted (4 -> C)	51: Cancelled (* -> 6)
+
+	*/
+
 	app.post('/issue-updated', addon.authenticate(), function(req,res) {
 		console.log(">>> Received event of an issue being updated");
 		console.log("Search the ngrok network traces to check body content.");
+
+		let itemsChanged = req.body.changelog.items;
+		let issueId = req.body.issue.id;
+		let prjId = req.body.issue.fields.project.id;
+		let i = 0;
+
+		for (; i < itemsChanged.length; i++) {
+			var obj = itemsChanged[i];
+            console.log("debug: current field checked " + obj.field);
+			if( obj.field == 'status') {
+				if (obj.from == 3 && obj.to == 5) {
+					// Issue is being resolved by Assignee
+					console.log("Issue status changed to Resolved, Oracle to approve it.");
+
+					var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
+			        var Project = "";
+			        ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
+						console.log("Project List created, address for " + prjName  + " : " + result);
+			            Project = new web3js.eth.Contract(prjContractInt.abi, result, {from: userAccount});
+
+						Project.methods.resolveTask(issueId).send({from: userAccount})
+							.on('receipt', function(receipt) {
+								console.log("Task resolved on blockchain.");
+							});
+					});
+
+
+
+
+
+
+				}
+			}
+		}
+
+
+
+
 		res.send("All right, got the request.")
 	});
 
