@@ -10,8 +10,8 @@
 	<!-- Web3, JQuery and Users addresses imports -->
 	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-	<script src="https://1c03b0583f6d.ngrok.io/js/userModule.js"></script>
-	<script src="https://1c03b0583f6d.ngrok.io/js/constants.js"></script>
+	<script src="https://7207d407dee7.ngrok.io/js/userModule.js"></script>
+	<script src="https://7207d407dee7.ngrok.io/js/constants.js"></script>
 	<script>
 	
 
@@ -214,7 +214,7 @@
 	    deposit = $("#start-task-deposit").val();
 		console.log("About to call Project.startWorkingOnTask("+ tid +") from: " +  userAccount + " with a deposit of " + deposit);
 
-	    Project.methods.startWorkingOnTask(tid).send({from: userAccount, value: deposit})
+	    Project.methods.startWorkingOnTask(tid).send({value: deposit})
 	        .on('receipt', function(receipt) {
 	            console.log("starWorkingOnTask() receipt received");
 	            // $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
