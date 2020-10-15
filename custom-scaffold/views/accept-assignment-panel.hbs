@@ -43,7 +43,7 @@
 	//var contractAbiURI = "http://127.0.0.1:8000/Project.json";
 	var contractAbiURI = "https://" + ngrokUri + "/contract-interface/Project.json";
 	var drpContractAbiURI = "https://" + ngrokUri + "/contract-interface/Drop.json";
-	var prjListContractIntURI = "https://" + ngrokUri + "/contract-interface/ProjectList.json"
+	var prjListContractIntURI = "https://" + ngrokUri + "/contract-interface/ProjectList.json";
 	
 	// Entire JSON interface for used contracts
 	// TODO 1 not efficient, some data is redundant
@@ -98,7 +98,6 @@
             alert("Not possible to retrieve contract JSON interface");
         }
     });
-
 
 	/*
 	 * Connect web3 to provider, using Metamask first, if not direct WS connection to local geth node
@@ -155,6 +154,12 @@
 	  )
 	);
 */
+
+	// TODO	14.10.2020 There is no need anymore to get user address
+	//		if Metamask is used. Might make sense to have some sort of check to 
+	//		make sure that current metamask address is the expected based on
+	//		logged-in user, but should not add `{from: userAccount}` in contract calls
+
 	AP.user.getCurrentUser(function(user) {
         console.log("The Atlassian Account ID is", user.atlassianAccountId);
         userAccount = this.userModule.getUserAddress(user.atlassianAccountId);
@@ -164,8 +169,8 @@
         * Retrieve current Project address from contract ProjectList
         */
 
-        var ProjectList = new web3.eth.Contract(prjListContractAbi, prjListContractAddress, {from: userAccount});
-		ProjectList.methods.getProjectAddress( {{prjId}} ).call( {from: userAccount} )
+        var ProjectList = new web3.eth.Contract(prjListContractAbi, prjListContractAddress);
+		ProjectList.methods.getProjectAddress( {{prjId}} ).call()
 			.then( function(result){
 
 				/*
@@ -173,7 +178,7 @@
 				*/
 
 				if(userAccount != "") {
-		            Project = new web3.eth.Contract(contractAbi, result, {from: userAccount});
+		            Project = new web3.eth.Contract(contractAbi, result);
 					contractAddress = result;
 					console.log("Project instance created. Address: ", contractAddress);
 		        } else {
@@ -214,12 +219,13 @@
 	    deposit = $("#start-task-deposit").val();
 		console.log("About to call Project.startWorkingOnTask("+ tid +") from: " +  userAccount + " with a deposit of " + deposit);
 
-	    Project.methods.startWorkingOnTask(tid).send({value: deposit})
+	    Project.methods.startWorkingOnTask(tid).send({from: userAccount, value: deposit})
 	        .on('receipt', function(receipt) {
 	            console.log("starWorkingOnTask() receipt received");
 	            // $('#console').append("<p>Tx #: " + receipt.transactionHash + "</p>");
 	            console.log("Gas used: " + receipt.gasUsed);
 				$("#done").show();
+
 	        })
 	        .on('error', function(error){
 	            console.log("starWorkingOnTask() error: "+ error);
