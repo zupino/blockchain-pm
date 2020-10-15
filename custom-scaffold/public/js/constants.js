@@ -12,7 +12,7 @@
     } 
 
 	function getProjectListAddress() {
-		var address = '0xA498730423825C107497E491b6C8Bca67BF65e0B';
+		var address = '0xef900E83976C931391C19C6689E0b04bf2a867F9';
 
 		return address;
 	}
