@@ -46,6 +46,8 @@ contract Task {
 
 	// TODO next 2 function might not be needed, can 
 	// I have a fixed deposit amount?
+	//	14.10.2020 me: maybe, but you are still using
+	//	these to set deposit to 0 on acceptance
 	function setDepositAssignee(uint _deposit) public {
 		depositAssignee = _deposit;
 	}

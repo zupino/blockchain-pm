@@ -19,6 +19,8 @@ contract Project {
     event fundsWithdrawn(address _to, uint _amount);
 	event taskAdded(uint _id, address _addr);
 	event taskStatusChanged(uint _id, uint _status);
+    event assigneeAccepted(uint tid, address assignee);
+
 
 	// Task acceptance deposit for both Oracle and Assignee
 	uint public defaultDeposit = 5;
@@ -140,6 +142,8 @@ contract Project {
         } else { // given the "require" assumption, this is Assignee
             if(msg.value == t.depositAssignee()) {
                 t.setDepositAssignee( 0 );
+				emit assigneeAccepted(_id, t.assignee());
+
             } else {
                 revert();
             }
