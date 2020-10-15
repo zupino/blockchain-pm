@@ -69,8 +69,9 @@ $.ajax({
 });
 
 /*
- * Connect web3 to provider
-*/
+ * Connect web3 to provider, bypass MetaMask and
+ * work directly with `geth` instance through WS
+
 
 var web3 = new Web3(
     new Web3.providers.WebsocketProvider(
@@ -85,7 +86,40 @@ var web3 = new Web3(
   )
 );
 
-// var web3 = new Web3(Web3.givenProvider || providerURI);
+*/
+
+// Use Metamask provide, post 2020 way
+
+    if (window.ethereum) {
+        console.log("Metamask seems available. Proceeding...")
+        web3 = new Web3(window.ethereum);
+        window.ethereum.enable();
+    } else {
+        console.log("ERR Metamask not available")
+    }
+
+    const provider = web3.currentProvider;
+    provider.on("connect", function(){
+        console.log("Web3 WebSocket provider connected.")
+    });
+    provider.on("error", function(error){
+        console.error("Problem Websocket provider connection: " + error)
+    });
+    web3.eth.net.isListening( function(error, result)  {
+        if(error) {
+            console.error(error);
+        } else {
+            console.log("Websocket provider is listening.")
+        }
+    })
+
+
+
+
+
+
+
+
 
 
 /*
@@ -96,7 +130,8 @@ var web3 = new Web3(
  * Check provider connection TBD
 */
 
-web3.eth.defaultAccount = userAccount;
+// This might disturb if using metamask
+// web3.eth.defaultAccount = userAccount;
 
 Project = new web3.eth.Contract(contractAbi, contractAddress, {from: userAccount});
 
