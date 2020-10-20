@@ -116,7 +116,7 @@
 	));
 	*/
 
-	// Use Metamask provide, post 2020 way
+	// Use Metamask provider, post 2020 way
 
 	if (window.ethereum) {
 		console.log("Metamask seems available. Proceeding...")
@@ -218,7 +218,9 @@
     	tid = {{id}};
 	    deposit = $("#start-task-deposit").val();
 		console.log("About to call Project.startWorkingOnTask("+ tid +") from: " +  userAccount + " with a deposit of " + deposit);
-
+		// from https://observablehq.com/@consensys-academy/web3-js-and-metamask
+		// I see the suggestion to use `web3.givenProvider.selectedAddress` as `from` field, but
+		// on Firefox/Linux/Metamask it select the wrong address from Metamask. Switch back to `userAccount`
 	    Project.methods.startWorkingOnTask(tid).send({from: userAccount, value: deposit})
 	        .on('receipt', function(receipt) {
 	            console.log("starWorkingOnTask() receipt received");
