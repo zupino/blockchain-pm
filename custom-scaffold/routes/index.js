@@ -40,15 +40,15 @@ web3js.eth.net.isListening( function(error, result)  {
 	}
 })
 
-// User account
-var userAccount = "";
+// User account, default to Oracle (which is also contract deployer)
+var userAccount = "0x2B64e6fF555D41FdE621b3062DF2aA81a081B33d";
 
 // TODO ProjectList contract is currently hardcoded, but still part 
 // of truffle migrate, ideally we should store the address of this
 // contract once deployed somewhere for the system to retrieve.
 // Maybe not an issue as this contract is intended to stay fixed, need
 // further thoughts.
-var prjListContractAddress = "0xA498730423825C107497E491b6C8Bca67BF65e0B";
+var prjListContractAddress = constants.getProjectListAddress();
 var prjContractAddress = "";
 var drpContractAddress = "";
 
@@ -56,11 +56,134 @@ var Project = null;
 var Drop = null;
 
 export default function routes(app, addon) {
-    
+
+	// TODO A generic way to configure default project should be defined
+    var prjId = 10000
+    var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
+    var Project = "";
+
+	// Initially I was simply override the `/installed` hook, but this is handled
+	// by ACE. Should do like this instead (see https://community.developer.atlassian.com/t/23172)
+	// app.post('/installed', (req,res) => {
+	addon.on( 'host_settings_saved', (clientKey, {eventType}) => {
+		// Prepare ProjectList and Project contract for general availability
+		// target: listed for blockchain events without passing through
+		// Issue or Project creation.
+		// Default project is Blockchain-pm at blockchain-pm.atlassian.net
+
+		var httpClient = addon.httpClient({
+			clientKey: clientKey
+		});
+
+		ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
+			console.log("Project List created. Default project `blockchain-pm` address: " + result);
+			Project = new web3js.eth.Contract(prjContractInt.abi, result, {from: userAccount});
+			console.log("General instance of Project created.");
+		
+			// Add listener for assigneeAccepted(tid, assignee) event
+			// TODO	By using `{fromBlock: 0}` the list of all events ever occurred
+			//		on this chain is shown, then the following callback set
+			//		applies only for new events. Better confirm this assumption
+			Project.events.assigneeAccepted({fromBlock: 0}, function (error, event) {
+				console.log(event.event);
+				console.log(event.returnValues);
+			});
+
+			// << start assigneeAccepted callback
+			Project.events.assigneeAccepted()
+			.on('data', function(event) {
+				var tid = event.returnValues.tid;
+				var assignee = event.returnValues.assignee;
+				console.log("Handling assigneeAccepted event. tid: " + event.returnValues.tid + ", assignee: " + event.returnValues.assignee);
+				console.log("[index.js] Type of event property: " + event.returnValues.assignee )
+				// get userId from address 
+				var assigneeId = user.getUserId(event.returnValues.assignee);
+
+				if(typeof assigneeId !== 'undefined' && assigneeId) {
+					console.log("assigneeAccepted event for issue " + tid + " with address " + assignee + " and assigneeId " + assigneeId);
+
+
+					var bodyData = {
+						'accountId': assigneeId
+					}
+
+					// Use the ACE provided httpClient instead of Axios
+					httpClient.put({
+							headers: { 'Content-type': 'application/json'},
+							url: '/rest/api/3/issue/' +  tid + '/assignee',
+							body: JSON.stringify(bodyData)
+						}, function(err, httpResponse, body) {
+							if(err) {
+								console.error("Problem in handling REST API request to set assignee: ", err);
+							}
+							console.log("JIRA Issue assignee set!");
+							console.log("Response body: ", body);
+						}
+					);
+				} // end if
+				else {
+					console.log('Error retrieving the assignee userId.')
+				}
+			});
+
+
+		// Registering of Task status update chain event
+
+		Project.events.taskStatusChanged( {fromBlock: 0}, function(error, event) {
+			console.log(event.event);
+			console.log(event.returnValues);
+		});
+
+		// << start taskStatusChanged callback
+		Project.events.taskStatusChanged()
+		.on('data', function(event){
+			// Blockchain Task status are
+			// 0: new           3: closed
+			// 1: accepted      4: cancelled
+			// 2: resolved      5: onhold
+			// If Task is accepted, we change JIRA Issue
+			// status to 2 (In progress)
+			// IN blockchain-pm.atlassian.net the workflow is BPM
+			if(event.returnValues._status == 1) {
+				console.log("Received event taskStatusChanged with Accepted status (id 1).")
+				console.log("Data from event.returnValues: ", event.returnValues._id, event.returnValues._status);
+				// Transition id is found in JIRA Worflow
+				var bodyData = {
+					'transition': {
+					'id': '11'
+					}
+				};
+				// Use the ACE provided httpClient instead of Axios
+				httpClient.post({
+					headers: { 'Content-type': 'application/json'},
+					url: '/rest/api/2/issue/' +  event.returnValues._id + '/transitions',
+					body: JSON.stringify(bodyData)
+					}, function(err, httpResponse, body) {
+					if(err) {
+						console.error("Problem in handling REST API request: ", err);
+					}
+					console.log("JIRA Issue state changed via REST API");
+					console.log("Response body: ", body);
+				});
+			}
+		});
+		// end tastStatusChanged callback >>
+	}); // end ProjectList.getProjectAddress() callback
+
+	}); // END app.post('/installed')
+
+
 	// ==>  Redirect root path to /atlassian-connect.json,
     app.get('/', (req, res) => {
         res.redirect('/atlassian-connect.json');
     });
+
+	// ==> Just a test methods for debugging
+	app.get('/john', (req,res) => {
+		// get userId from address 
+		var assigneeId = user.getUserId('0x13936ebf7f8e6420c79764532434a3f7cbdc36eb');
+		res.send('Test value: ' + assigneeId);
+	});
 
     // Hello-world example, kept for reference .
     app.get('/hello-world', addon.authenticate(), (req, res) => {
@@ -107,9 +230,6 @@ export default function routes(app, addon) {
 
 
 		console.log("Entering Project contract creation.");
-		// Preparing the contract for ProjectList, to keep track
-		// of deployment address for Project contract
-		var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
 		
 		ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
 			console.log("Project List created, should have address null: ", result);
@@ -150,9 +270,8 @@ export default function routes(app, addon) {
 
 			// Add listener for taskStatusChanged() event
 			Project.events.taskStatusChanged( {fromBlock: 0}, function(error, event) { 
-				
-
-				console.log(event) 
+				console.log(event.event);
+				console.log(event.returnValues);
 			});
 
 			
@@ -354,7 +473,6 @@ function(error, event) {
         // the current Issue project is a BPM Project
         // This should also take line 204 into account,
         // by removing the filter on currently created project.
-		var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
 		var Project = "";
         ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
             console.log("Project List created, address for " + prjName  + " : " + result);
@@ -401,9 +519,53 @@ function(error, event) {
 			// Get an instance of the ACE httpClient (which also handle JWT Auth for REST API requests)
 	        var httpClient = addon.httpClient(req);
 
+			// Add listener for assigneeAccepted(tid, assignee) event
+			Project.events.assigneeAccepted({fromBlock: 0}, function (error, event) {
+				console.log(event.event);
+				console.log(event.returnValues);
+			});
+
+			// << start assigneeAccepted callback
+			Project.events.assigneeAccepted()
+			.on('data', function(event) {
+				tid = event.returnValues.tid;
+				assignee = event.returnValues.assignee;
+				console.log("Handling assigneeAccepted event. tid: " + tid + ", assignee: " + assignee);
+				// get userId from address 
+				var assigneeId = user.getUserId(assignee);
+					
+				if(typeof assigneeId !== 'undefined' && assigneeId) {
+					console.log("assigneeAccepted event for issue " + tid + " with address " + assignee + " and assigneeId " + assigneeId);
+			
+
+					var bodyData = {
+						'accountId': assigneeId
+					}
+
+					// Use the ACE provided httpClient instead of Axios
+					httpClient.put({
+        	                headers: { 'Content-type': 'application/json'},
+            	            url: '/rest/api/3/issue/' +  tid + '/assignee',
+                	        body: JSON.stringify(bodyData)
+	                    }, function(err, httpResponse, body) {
+    	                    if(err) {
+        	                    console.error("Problem in handling REST API request to set assignee: ", err);
+            	            }
+                	        console.log("JIRA Issue assignee set!");
+                    	    console.log("Response body: ", body);
+	                    }
+					);
+				} // end if
+				else {
+					console.log('Error retrieving the assignee userId.')
+				}
+
+			})
+
 			// Add listener for taskStatusChanged() event
             Project.events.taskStatusChanged( {fromBlock: 0}, function(error, event) { 
-                console.log(event)
+                console.log(event.event);
+				console.log(event.returnValues);
             });
 
 			// << start taskStatusChanged callback
@@ -448,10 +610,10 @@ function(error, event) {
 
                 }
 
-                })
+                });
 			// end tastStatusChanged callback >>
 
-        })
+        });
 
 	});
 
@@ -483,10 +645,28 @@ function(error, event) {
 		console.log(">>> Received event of an issue being updated");
 		console.log("Search the ngrok network traces to check body content.");
 
+		// start with retrieving current user address
+		
+		// TODO this method is un-secure (read JWT claim without verifying signature)
+		// and also not the best, in general user addresses should be a JIRA user property
+		// or something. I am using this approach only in the prototype
+		
+		// TODO This is duplicated code, there are at least 2 instances of this code
+		// which should actually refactored into a general method
+		tk = req.header('Authorization').split(' ')[1];
+		console.log("Token from POST Headers: ", tk);
+		console.log("Decoded token: ", addon._jwt.decode(tk, null, true));
+
+		userId = addon._jwt.decode(tk, null, true).sub;
+		userAccount = user.getUserAddress(userId);
+
 		let itemsChanged = req.body.changelog.items;
 		let issueId = req.body.issue.id;
 		let prjId = req.body.issue.fields.project.id;
+		let prjName = req.body.issue.fields.project.name;
 		let i = 0;
+
+		// TODO	
 
 		for (; i < itemsChanged.length; i++) {
 			var obj = itemsChanged[i];
@@ -496,7 +676,6 @@ function(error, event) {
 					// Issue is being resolved by Assignee
 					console.log("Issue status changed to Resolved, Oracle to approve it.");
 
-					var ProjectList = new web3js.eth.Contract(prjListContractInt.abi, prjListContractAddress, {from: userAccount});
 			        var Project = "";
 			        ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
 						console.log("Project List created, address for " + prjName  + " : " + result);
@@ -507,12 +686,28 @@ function(error, event) {
 								console.log("Task resolved on blockchain.");
 							});
 					});
+				} else if (obj.from == 5 && obj.to == 6) {
+					// Resolved Issue being accepted by Oracle and closed
+					console.log("Issue status changed to Closed, Oracle approved it.");
+
+					var Project = "";
+			        ProjectList.methods.getProjectAddress(prjId).call().then( function(result) {
+						console.log("Project List created, address for " + prjName  + " : " + result);
+			            Project = new web3js.eth.Contract(prjContractInt.abi, result, {from: userAccount});
+
+						Project.methods.closeTask(issueId).send({from: userAccount})
+							.on('receipt', function(receipt) {
+								console.log("Task closed, reward transferred to Assignee. ₿₿₿!");
+							});
+					});
+
+					
 
 
 
-
-
-
+				}	else {
+					// do nothing ?
+					console.log("State transition not recognized.");
 				}
 			}
 		}
